@@ -10,11 +10,54 @@ class CartCheckoutPage extends StatefulWidget {
 }
 
 class _CartCheckoutPageState extends State<CartCheckoutPage> {
-  bool isDelivery = true; // Track the selected mode (Delivery or Pickup)
+  bool isDeliverySelected = true;
+  String _selectedPaymentMethod = 'Не выбрано';
+  final List<String> paymentOptions = ['Наличные', 'Картой', 'Онлайн'];
+
+  void _showPaymentOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Выберите способ оплаты',
+                style: AppTextStyles.H2.copyWith(color: Colors.white),
+              ),
+              const SizedBox(height: 16),
+              for (String option in paymentOptions)
+                ListTile(
+                  onTap: () {
+                    setState(() {
+                      _selectedPaymentMethod = option;
+                    });
+                    Navigator.pop(context);
+                  },
+                  leading: Icon(
+                    Icons.payment,
+                    color: Colors.white,
+                  ),
+                  title: Text(
+                    option,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    const double circleRadius = 15; // Circle radius
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -23,7 +66,6 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 20),
-              // Заголовок "Корзина"
               Center(
                 child: Text(
                   'Корзина',
@@ -31,145 +73,79 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
                 ),
               ),
               const SizedBox(height: 20),
-              // Блок с шагами
-              Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    _stepIndicator('1', 'Мой заказ', true),
-                    _dottedLineBetweenCircles(isActive: true, circleRadius: circleRadius),
-                    _stepIndicator('2', 'Оформление', true),
-                    _dottedLineBetweenCircles(isActive: false, circleRadius: circleRadius),
-                    _stepIndicator('3', 'Заказ принят', false),
-                  ],
-                ),
-              ),
+              _buildOrderSteps(),
               const SizedBox(height: 40),
 
-              // Контейнер с заголовком "Оформление заказа" и личными данными
-              Container(
-                child: Column(
+              // Личные данные
+              _buildSection('Личные данные', [
+                _buildLabeledInputField('Имя', 'Иван'),
+                _buildLabeledInputField('E-mail', 'example@mail.ru'),
+                _buildLabeledInputField('Телефон', '+7 (___) ___-__-__'),
+              ]),
+
+              const SizedBox(height: 32),
+
+              // Доставка/Самовывоз
+              _buildDeliveryToggle(),
+
+              const SizedBox(height: 32),
+
+              if (isDeliverySelected)
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Заголовок "Оформление заказа"
-                    Text(
-                      'Оформление заказа',
-                      style: AppTextStyles.H2.copyWith(color: Colors.white),
+                    // Поле для адреса
+                    _buildLabeledInputField(
+                      'Адрес для доставки',
+                      'Введите полный адрес...',
+                      maxLines: 5,
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
 
-                    // Блок "Личные данные"
-                    _buildSection('Личные данные', [
-                      _buildLabeledInputField('Имя', 'Иван'),
-                      _buildLabeledInputField('E-mail', 'example@mail.ru'),
-                      _buildLabeledInputField('Телефон', '+7 (___) ___-__-__'),
-                    ]),
-
-                    const SizedBox(height: 32),
-
-                    // Переключатель между доставкой и самовывозом
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Доставка',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              isDelivery = !isDelivery;
-                            });
-                          },
-                          child: Container(
-                            width: 160,
-                            height: 40,
-                            padding: const EdgeInsets.all(5),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(25),
-                              border: Border.all(color: const Color(0xFF4D4D4D), width: 1.5),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Container(
-                                  width: 140,
-                                  height: 30,
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(20),
-                                    color: isDelivery ? const Color(0xFFD1930D) : Colors.grey,
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      isDelivery ? 'Доставка' : 'Самовывоз',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+                    // Поле для времени доставки
+                    _buildLabeledInputField(
+                      'Время доставки',
+                      'Например: 12:00 - 13:00',
                     ),
 
-                    const SizedBox(height: 32),
+                    // Поле для комментариев
+                    _buildLabeledInputField(
+                      'Комментарии к заказу',
+                      'Введите дополнительные пожелания...',
+                      maxLines: 3,
+                    ),
 
-                    // Блок "Адрес доставки", показывается только при доставке
-                    if (isDelivery)
-                      _buildSection('Адрес доставки', [
-                        _buildLabeledInputField('Город', 'Москва'),
-                        _buildLabeledInputField('Улица', 'ул. Пушкина'),
-                        _buildLabeledInputField('Дом', '10'),
-                        _buildLabeledInputField('Квартира', '20'),
-                      ]),
+                    const SizedBox(height: 16),
                   ],
                 ),
-              ),
+
+              // Выбор способа оплаты
+              _buildPaymentMethodBlock(),
 
               const SizedBox(height: 20),
 
               // Кнопки
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.white),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    child: const Text('Вернуться в корзину', style: TextStyle(color: Colors.white)),
-                  ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFD1930D),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const CartConfirmPage()),
-                      );
-                    },
-                    child: const Text('Оформить заказ'),
-                  ),
-                ],
-              ),
+              _buildButtons(),
               const SizedBox(height: 20),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildOrderSteps() {
+    return Center(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          _stepIndicator('1', 'Мой заказ', true),
+          _dottedLineBetweenCircles(isActive: true),
+          _stepIndicator('2', 'Оформление', true),
+          _dottedLineBetweenCircles(isActive: false),
+          _stepIndicator('3', 'Заказ принят', false),
+        ],
       ),
     );
   }
@@ -208,12 +184,10 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
     );
   }
 
-  Widget _dottedLineBetweenCircles({required bool isActive, required double circleRadius}) {
+  Widget _dottedLineBetweenCircles({required bool isActive}) {
     return CustomPaint(
-      size: Size(circleRadius * 3, circleRadius),
-      painter: DottedLinePainter(
-        color: isActive ? const Color(0xFFD1930D) : const Color(0xFF848484),
-      ),
+      size: const Size(50, 2),
+      painter: DottedLinePainter(color: isActive ? const Color(0xFFD1930D) : const Color(0xFF848484)),
     );
   }
 
@@ -234,7 +208,7 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
     );
   }
 
-  Widget _buildLabeledInputField(String label, String hintText) {
+  Widget _buildLabeledInputField(String label, String hintText, {int maxLines = 1}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: Column(
@@ -245,24 +219,172 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
             style: AppTextStyles.Title.copyWith(color: Colors.white),
           ),
           const SizedBox(height: 12),
-          _buildInputField(hintText),
+          TextField(
+            maxLines: maxLines,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: hintText,
+              hintStyle: const TextStyle(color: Colors.grey),
+              filled: true,
+              fillColor: const Color(0xFF1C2D45),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildInputField(String hintText) {
-    return TextField(
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        hintText: hintText,
-        hintStyle: const TextStyle(color: Colors.grey),
-        filled: true,
-        fillColor: const Color(0xFF1C2D45),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+  Widget _buildDeliveryToggle() {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      padding: const EdgeInsets.all(5),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(25),
+        border: Border.all(color: const Color(0xFF4D4D4D), width: 1.5),
+      ),
+      child: Row(
+        children: [
+          _buildDeliveryOption('Доставка', true),
+          _buildDeliveryOption('Самовывоз', false),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDeliveryOption(String label, bool isSelected) {
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            isDeliverySelected = label == 'Доставка';
+          });
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          height: 40,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            color: isDeliverySelected == (label == 'Доставка')
+                ? const Color(0xFFD1930D)
+                : Colors.transparent,
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: AppTextStyles.Title.copyWith(
+                color: isDeliverySelected == (label == 'Доставка')
+                    ? Colors.white
+                    : Colors.grey,
+              ),
+            ),
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildPaymentMethodBlock() {
+    return GestureDetector(
+      onTap: _showPaymentOptions,
+      child: Container(
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          border: Border.all(color: const Color(0xFF848484), width: 1.5),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.payment, color: Colors.white),
+                const SizedBox(width: 12),
+                Text(
+                  _selectedPaymentMethod,
+                  style: AppTextStyles.Title.copyWith(color: Colors.white),
+                ),
+              ],
+            ),
+            Text(
+              'ВЫБРАТЬ',
+              style: AppTextStyles.Title.copyWith(color: const Color(0xFFD1930D)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildButtons() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        // Кнопка "Вернуться"
+        GestureDetector(
+          onTap: () {
+            Navigator.pop(context);
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 28),
+            decoration: BoxDecoration(
+              color: const Color(0xFF4D4D4D),
+              borderRadius: BorderRadius.circular(25),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.arrow_back_ios_new,
+                  color: Colors.white,
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Вернуться',
+                  style: AppTextStyles.Subtitle.copyWith(color: Colors.white),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // Кнопка "Оформить заказ"
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CartConfirmPage()),
+            );
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 48),
+            decoration: BoxDecoration(
+              color: const Color(0xFFD1930D),
+              borderRadius: BorderRadius.circular(25),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  'Оформить заказ',
+                  style: AppTextStyles.Subtitle.copyWith(color: Colors.white),
+                ),
+                const SizedBox(width: 8),
+                const Icon(
+                  Icons.arrow_forward_ios,
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -284,8 +406,8 @@ class DottedLinePainter extends CustomPainter {
 
     while (startX < size.width) {
       canvas.drawLine(
-        Offset(startX, 0),
-        Offset(startX + dashWidth, 0),
+        Offset(startX, size.height / 2),
+        Offset(startX + dashWidth, size.height / 2),
         paint,
       );
       startX += dashWidth + dashSpace;
@@ -293,5 +415,5 @@ class DottedLinePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
