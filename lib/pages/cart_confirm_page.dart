@@ -223,8 +223,14 @@ class CartConfirmPage extends StatelessWidget {
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.max,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
+                    const Icon(
+                      Icons.arrow_back_ios_new,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
                     Text('Вернуться к оформлению', style: AppTextStyles.Subtitle.copyWith(color: Colors.white)),
                   ],
                 ),

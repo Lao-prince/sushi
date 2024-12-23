@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'pages/menu_page.dart'; // Убедитесь, что путь к файлу правильный
 import 'pages/search_page.dart'; // Убедитесь, что путь к файлу правильный
 import 'pages/cart_page.dart'; // Убедитесь, что путь к файлу правильный
+import 'pages/profile_page.dart'; // Убедитесь, что путь к файлу правильный
 import 'widgets/menu_bar.dart' as custom; // Используем псевдоним
 import 'style/styles.dart'; // Файл со стилями текста
 
@@ -48,7 +49,7 @@ class _MainPageState extends State<MainPage> {
     MenuPage(), // Убедитесь, что MenuPage определен корректно
     SearchPage(),
     CartPage(),
-    const Center(child: Text('Профиль')),
+    ProfilePage(),
   ];
 
   void _onItemTapped(int index) {

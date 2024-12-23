@@ -65,7 +65,13 @@ class CartPage extends StatelessWidget {
                     MaterialPageRoute(builder: (context) => const CartCheckoutPage()),
                   );
                 },
-                child: const Text('К доставке и оплате', style: TextStyle(fontSize: 16)),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    Text('К доставке и оплате', style: AppTextStyles.Subtitle.copyWith(color: Colors.white)),
+                  ],
+                ),
               ),
             ),
           ],
