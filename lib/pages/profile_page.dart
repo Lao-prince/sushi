@@ -96,27 +96,16 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
   Widget getActiveContent() {
     switch (activeIndex) {
       case 0:
-        return Center(child: Text('Избранное', style: AppTextStyles.Body));
+        return const Center(child: Text('Избранное', style: AppTextStyles.Body));
       case 1:
         return _buildMyDataCard();
       case 2:
-        return Center(child: Text('Заказы', style: AppTextStyles.Body));
+        return const Center(child: Text('Заказы', style: AppTextStyles.Body));
       case 3:
         return _buildChangePasswordForm();
       default:
         return const SizedBox();
     }
-  }
-
-  Widget _buildSection(String title, List<Widget> children) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: AppTextStyles.H2.copyWith(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 20),
-        ...children,
-      ],
-    );
   }
 
   Widget _buildMyDataCard() {
@@ -181,7 +170,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
               },
               style: TextButton.styleFrom(
                 foregroundColor: const Color(0xFFEB8B8D),
-                textStyle: AppTextStyles.Subtitle.copyWith(color: Color(0xFFEB8B8D)),
+                textStyle: AppTextStyles.Subtitle.copyWith(color: const Color(0xFFEB8B8D)),
               ),
               child: const Text('Удалить профиль'),
             ),
@@ -197,7 +186,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
       children: [
         Text(
           title,
-          style: AppTextStyles.H3.copyWith(color: Color(0xFFD1930D)),
+          style: AppTextStyles.H3.copyWith(color: const Color(0xFFD1930D)),
         ),
         const SizedBox(height: 6),
         Text(
@@ -219,7 +208,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
         child: Column(
           children: [
             const SizedBox(height: 20),
-            Center(
+            const Center(
               child: Text('Профиль', style: AppTextStyles.H1),
             ),
             const SizedBox(height: 20),

@@ -39,7 +39,7 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
                     });
                     Navigator.pop(context);
                   },
-                  leading: Icon(
+                  leading: const Icon(
                     Icons.payment,
                     color: Colors.white,
                   ),

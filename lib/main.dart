@@ -48,8 +48,8 @@ class _MainPageState extends State<MainPage> {
   final List<Widget> _pages = [
     MenuPage(), // Убедитесь, что MenuPage определен корректно
     SearchPage(),
-    CartPage(),
-    ProfilePage(),
+    const CartPage(),
+    const ProfilePage(),
   ];
 
   void _onItemTapped(int index) {

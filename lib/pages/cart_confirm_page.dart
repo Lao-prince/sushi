@@ -56,7 +56,7 @@ class CartConfirmPage extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.start,
                         children: [
-                          Icon(Icons.check_circle, color: const Color(0xFFD1930D), size: 50),
+                          const Icon(Icons.check_circle, color: Color(0xFFD1930D), size: 50),
                           const SizedBox(width: 16),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,

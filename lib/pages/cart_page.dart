@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../style/styles.dart';
 import 'cart_checkout_page.dart';
+import '../widgets/cart_card.dart';
 
 class CartPage extends StatelessWidget {
   const CartPage({Key? key}) : super(key: key);
@@ -10,68 +11,250 @@ class CartPage extends StatelessWidget {
     const double circleRadius = 15; // Circle radius
     return Scaffold(
       body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            // Page title
-            Text(
-              'Корзина',
-              style: AppTextStyles.H1.copyWith(color: Colors.white),
-            ),
-            const SizedBox(height: 20),
-            // Steps alignment
-            Center(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  _stepIndicator('1', 'Мой заказ', true),
-                  _dottedLineBetweenCircles(isActive: true, circleRadius: circleRadius),
-                  _stepIndicator('2', 'Оформление', false),
-                  _dottedLineBetweenCircles(isActive: false, circleRadius: circleRadius),
-                  _stepIndicator('3', 'Заказ принят', false),
-                ],
+        child: SingleChildScrollView( // Оборачиваем в SingleChildScrollView для прокрутки
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
+              // Page title
+              Text(
+                'Корзина',
+                style: AppTextStyles.H1.copyWith(color: Colors.white),
               ),
-            ),
-            const SizedBox(height: 20),
-            // Sample cart item
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(16.0),
-                children: [
-                  _cartItem(
-                    title: 'Ролл "Феникс"',
-                    subtitle: '4 штуки',
-                    price: '630 ₽',
-                    imagePath: 'assets/sushi.png',
-                  ),
-                  const Divider(color: Color(0xFFD1930D), thickness: 1),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFD1930D),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const CartCheckoutPage()),
-                  );
-                },
+              const SizedBox(height: 20),
+              // Steps alignment
+              Center(
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.max,
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text('К доставке и оплате', style: AppTextStyles.Subtitle.copyWith(color: Colors.white)),
+                    _stepIndicator('1', 'Мой заказ', true),
+                    _dottedLineBetweenCircles(isActive: true, circleRadius: circleRadius),
+                    _stepIndicator('2', 'Оформление', false),
+                    _dottedLineBetweenCircles(isActive: false, circleRadius: circleRadius),
+                    _stepIndicator('3', 'Заказ принят', false),
                   ],
                 ),
+              ),
+              const SizedBox(height: 20),
+              // Верхний блок с товарами
+              _topCartSummary(context),
+              const SizedBox(height: 20),
+              // Новый блок "Приборы"
+              _instrumentsBlock(context),
+              const SizedBox(height: 20),
+              // Новый блок "Дополнительно"
+              _additionalBlock(context),
+              const SizedBox(height: 20),
+              // Bottom block with order details and button
+              _bottomOrderDetails(context),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Новый блок "Приборы"
+  Widget _instrumentsBlock(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 15),
+      child: Container(
+        padding: const EdgeInsets.all(25),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: const Color(0xFFD1930D), width: 1.5),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF3A435B), Color(0xFF0A0A0A)],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Приборы',
+              style: AppTextStyles.H2.copyWith(color: Colors.white),
+            ),
+            const SizedBox(height: 15),
+            // Добавим картинку или товар для прибора
+            const CartCard(
+              title: 'Прибор "Ложка для суши"',
+              subtitle: '1 шт',
+              price: '150 ₽',
+              imagePath: 'assets/images/sushi.jpg',
+            ),
+            const SizedBox(height: 15),
+            const CartCard(
+              title: 'Прибор "Вилка"',
+              subtitle: '2 шт',
+              price: '100 ₽',
+              imagePath: 'assets/images/zaglushka.png',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Новый блок "Дополнительно"
+  Widget _additionalBlock(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 15),
+      child: Container(
+        padding: const EdgeInsets.all(25),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: const Color(0xFFD1930D), width: 1.5),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF3A435B), Color(0xFF0A0A0A)],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Дополнительно',
+              style: AppTextStyles.H2.copyWith(color: Colors.white),
+            ),
+            const SizedBox(height: 15),
+            // Добавим товары для дополнительных товаров
+            const CartCard(
+              title: 'Соус "Соевый"',
+              subtitle: '1 шт',
+              price: '50 ₽',
+              imagePath: 'assets/images/sushi.jpg',
+            ),
+            const SizedBox(height: 15),
+            const CartCard(
+              title: 'Имбирь',
+              subtitle: '1 шт',
+              price: '30 ₽',
+              imagePath: 'assets/images/zaglushka.png',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _topCartSummary(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 15),
+      child: Container(
+        padding: const EdgeInsets.all(25),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: const Color(0xFFD1930D), width: 1.5),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF3A435B), Color(0xFF0A0A0A)],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Заказ',
+              style: AppTextStyles.H2.copyWith(color: Colors.white),
+            ),
+            const SizedBox(height: 15),
+            // Использование CartCard
+            const CartCard(
+              title: 'Ролл "Филадельфия"',
+              subtitle: '6 штук',
+              price: '530 ₽',
+              imagePath: 'assets/images/sushi.jpg',
+            ),
+            const SizedBox(height: 15),
+            const CartCard(
+              title: 'Сет "Ассорти"',
+              subtitle: '12 штук',
+              price: '1250 ₽',
+              imagePath: 'assets/images/zaglushka.png',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _bottomOrderDetails(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 15), // Отступы по 15px от краев приложения
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 25, horizontal: 10),
+        decoration: BoxDecoration(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(15),
+            topRight: Radius.circular(15),
+          ),
+          border: Border.all(color: const Color(0xFFD1930D), width: 1.5),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF3A435B), Color(0xFF0A0A0A)],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Стоимость заказа',
+                  style: AppTextStyles.H2.copyWith(color: Colors.white),
+                ),
+                const SizedBox(height: 20),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Сумма заказа', style: AppTextStyles.H3.copyWith(color: Colors.grey)),
+                        Text('630 ₽', style: AppTextStyles.H3.copyWith(color: Colors.white)),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    const Divider(color: Color(0xFFD1930D), thickness: 1),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Итого', style: AppTextStyles.H3.copyWith(color: const Color(0xFFD1930D), fontWeight: FontWeight.bold)),
+                        Text('630 ₽', style: AppTextStyles.H3.copyWith(color: const Color(0xFFD1930D), fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFD1930D),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const CartCheckoutPage()),
+                );
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('К доставке и оплате', style: AppTextStyles.Subtitle.copyWith(color: Colors.white)),
+                ],
               ),
             ),
           ],
@@ -122,30 +305,6 @@ class CartPage extends StatelessWidget {
       ),
     );
   }
-
-  Widget _cartItem({
-    required String title,
-    required String subtitle,
-    required String price,
-    required String imagePath,
-  }) {
-    return Row(
-      children: [
-        Image.asset(imagePath, width: 60, height: 60),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(color: Colors.white)),
-              Text(subtitle, style: const TextStyle(color: Colors.grey)),
-            ],
-          ),
-        ),
-        Text(price, style: const TextStyle(color: Colors.white)),
-      ],
-    );
-  }
 }
 
 class DottedLinePainter extends CustomPainter {
@@ -174,5 +333,7 @@ class DottedLinePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return false;
+  }
 }
