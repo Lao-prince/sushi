@@ -59,7 +59,7 @@ class CartPage extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 15),
       child: Container(
-        padding: const EdgeInsets.all(25),
+        padding: const EdgeInsets.symmetric(vertical: 25, horizontal: 10),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(15),
           border: Border.all(color: const Color(0xFFD1930D), width: 1.5),
@@ -102,7 +102,7 @@ class CartPage extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 15),
       child: Container(
-        padding: const EdgeInsets.all(25),
+        padding: const EdgeInsets.symmetric(vertical: 25, horizontal: 10),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(15),
           border: Border.all(color: const Color(0xFFD1930D), width: 1.5),
@@ -144,7 +144,7 @@ class CartPage extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 15),
       child: Container(
-        padding: const EdgeInsets.all(25),
+        padding: const EdgeInsets.symmetric(vertical: 25, horizontal: 10),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(15),
           border: Border.all(color: const Color(0xFFD1930D), width: 1.5),
@@ -222,7 +222,7 @@ class CartPage extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 6),
-                    const Divider(color: Color(0xFFD1930D), thickness: 1),
+                    const Divider(color: Color(0xFF4D4D4D), thickness: 1),
                     const SizedBox(height: 6),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
