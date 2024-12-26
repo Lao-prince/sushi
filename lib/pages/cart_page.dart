@@ -84,13 +84,6 @@ class CartPage extends StatelessWidget {
               price: '150 ₽',
               imagePath: 'assets/images/sushi.jpg',
             ),
-            const SizedBox(height: 15),
-            const CartCard(
-              title: 'Прибор "Вилка"',
-              subtitle: '2 шт',
-              price: '100 ₽',
-              imagePath: 'assets/images/zaglushka.png',
-            ),
           ],
         ),
       ),
@@ -164,12 +157,14 @@ class CartPage extends StatelessWidget {
             const SizedBox(height: 15),
             // Использование CartCard
             const CartCard(
-              title: 'Ролл "Филадельфия"',
+              title: 'Суши "Спайси Унаги Гриль"',
               subtitle: '6 штук',
               price: '530 ₽',
               imagePath: 'assets/images/sushi.jpg',
             ),
-            const SizedBox(height: 15),
+            const SizedBox(height: 8),
+            const Divider(color: Color(0xFF4D4D4D), thickness: 1),
+            const SizedBox(height: 8),
             const CartCard(
               title: 'Сет "Ассорти"',
               subtitle: '12 штук',

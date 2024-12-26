@@ -23,6 +23,11 @@ class ProductCard extends StatelessWidget {
       margin: const EdgeInsets.all(4.5), // Отступы между карточками
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(15),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF3A435B), Color(0xFF0A0A0A)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
         border: Border.all(color: const Color(0xFFD1930D)),
       ),
       child: Column(

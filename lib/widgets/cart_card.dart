@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../style/styles.dart';
 
 class CartCard extends StatelessWidget {
   final String title;
@@ -17,11 +18,8 @@ class CartCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        color: const Color(0xFF1E1E1E), // Фон карточки
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -37,7 +35,7 @@ class CartCard extends StatelessWidget {
                   fit: BoxFit.cover,
                 ),
               ),
-              height: 100, // Высота карточки
+              height: 100, // Высота для прямоугольного изображения
             ),
           ),
           const SizedBox(width: 12),
@@ -46,75 +44,86 @@ class CartCard extends StatelessWidget {
             flex: 2,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                // Заголовок и иконка удаления
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Название и подзаголовок
+                    // Заголовок
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            subtitle,
-                            style: const TextStyle(
-                              color: Colors.grey,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        title,
+                        style: AppTextStyles.Title.copyWith(),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     // Иконка удаления
-                    IconButton(
-                      onPressed: () {},
-                      icon: const Icon(
-                        Icons.delete,
-                        color: Colors.redAccent,
+                    SizedBox(
+                      width: 25,
+                      height: 25,
+                      child: IconButton(
+                        padding: EdgeInsets.zero, // Убираем внутренние отступы
+                        constraints: const BoxConstraints(),
+                        onPressed: () {},
+                        icon: const Icon(
+                          Icons.delete_outlined,
+                          color: const Color(0xFFEB8B8D),
+                          size: 25, // Устанавливаем размер иконки
+                        ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                // Блок: порции и количество
+                const SizedBox(height: 4), // Отступ 4px между заголовком и описанием
+                // Описание
+                Text(
+                  subtitle,
+                  style: AppTextStyles.Body.copyWith(color: const Color(0xFF848484)),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 24), // Отступ между описанием и блоком порций
+                // Блок порций и цены
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        IconButton(
-                          onPressed: () {},
-                          icon: const Icon(Icons.remove, color: Colors.grey),
+                    // Контейнер с кнопками минус и плюс
+                    Container(
+                      height: 24, // Устанавливаем высоту блока
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFD1930D), // Золотой фон
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(25), // Закругление верхнего левого угла
+                          bottomRight: Radius.circular(25), // Закругление нижнего правого угла
                         ),
-                        const Text(
-                          '1',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                        IconButton(
-                          onPressed: () {},
-                          icon: const Icon(Icons.add, color: Colors.grey),
-                        ),
-                      ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () {},
+                            icon: const Icon(Icons.remove, color: Colors.white), // Белая иконка
+                          ),
+                          Text(
+                            '1',
+                            style: AppTextStyles.Subtitle.copyWith(color: Colors.white), // Белый текст
+                          ),
+                          IconButton(
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () {},
+                            icon: const Icon(Icons.add, color: Colors.white), // Белая иконка
+                          ),
+                        ],
+                      ),
                     ),
                     // Цена
                     Text(
                       price,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: AppTextStyles.H3.copyWith(color: Color(0xFFD1930D)),
                     ),
                   ],
                 ),

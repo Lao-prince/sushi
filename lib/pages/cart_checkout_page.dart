@@ -12,50 +12,128 @@ class CartCheckoutPage extends StatefulWidget {
 class _CartCheckoutPageState extends State<CartCheckoutPage> {
   bool isDeliverySelected = true;
   String _selectedPaymentMethod = 'Не выбрано';
-  final List<String> paymentOptions = ['Наличные', 'Картой', 'Онлайн'];
+  final List<String> paymentOptions = ['Наличными', 'Картой при получении', 'Онлайн картой'];
 
   void _showPaymentOptions() {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
+      backgroundColor: const Color(0xFF091D2C),
       builder: (context) {
         return Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(vertical: 25, horizontal: 15),
+          decoration: BoxDecoration(
+            color: const Color(0xFF091D2C),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.white.withOpacity(0.25),
+                blurRadius: 6,
+                offset: const Offset(0, 0),
+              ),
+            ],
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Заголовок
               Text(
                 'Выберите способ оплаты',
                 style: AppTextStyles.H2.copyWith(color: Colors.white),
               ),
               const SizedBox(height: 16),
-              for (String option in paymentOptions)
-                ListTile(
+              // Опции оплаты
+              for (int i = 0; i < paymentOptions.length; i++) ...[
+                GestureDetector(
                   onTap: () {
                     setState(() {
-                      _selectedPaymentMethod = option;
+                      _selectedPaymentMethod = paymentOptions[i];
                     });
                     Navigator.pop(context);
                   },
-                  leading: const Icon(
-                    Icons.payment,
-                    color: Colors.white,
-                  ),
-                  title: Text(
-                    option,
-                    style: const TextStyle(color: Colors.white),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: Row(
+                      children: [
+                        // Иконка и текст
+                        Flexible( // Используем Flexible вместо Expanded
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.payment,
+                                color: _selectedPaymentMethod == paymentOptions[i]
+                                    ? Colors.white
+                                    : const Color(0xFF848484), // Серая иконка
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                paymentOptions[i],
+                                style: AppTextStyles.H3.copyWith(
+                                  color: _selectedPaymentMethod == paymentOptions[i]
+                                      ? Colors.white
+                                      : const Color(0xFF848484), // Серый текст
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Кружок справа
+                        GestureDetector( // Делает кружок кликабельным
+                          onTap: () {
+                            setState(() {
+                              _selectedPaymentMethod = paymentOptions[i];
+                            });
+                            Navigator.pop(context);
+                          },
+                          child: Container(
+                            width: 20,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: _selectedPaymentMethod == paymentOptions[i]
+                                    ? const Color(0xFFD1930D) // Золотая обводка
+                                    : const Color(0xFF848484), // Серая обводка
+                                width: 1.5,
+                              ),
+                            ),
+                            child: _selectedPaymentMethod == paymentOptions[i]
+                                ? Center(
+                              child: Container(
+                                width: 10,
+                                height: 10,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Color(0xFFD1930D), // Золотой цвет
+                                ),
+                              ),
+                            )
+                                : null,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              const SizedBox(height: 10),
+                // Полоса между элементами
+                if (i < paymentOptions.length - 1) ...[
+                  const SizedBox(height: 4),
+                  const Divider(
+                    color: Color(0xFF4D4D4D),
+                    thickness: 1,
+                  ),
+                  const SizedBox(height: 4),
+                ],
+              ],
             ],
           ),
         );
       },
     );
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
