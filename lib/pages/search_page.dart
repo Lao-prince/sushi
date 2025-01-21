@@ -45,9 +45,9 @@ class SearchPage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 15), // Отступ от краев
-                    Icon(
+                    const Icon(
                       Icons.search,
-                      color: const Color(0xFF848484),
+                      color: Color(0xFF848484),
                     ),
                   ],
                 ),

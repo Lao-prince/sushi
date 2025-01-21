@@ -20,12 +20,12 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
-      backgroundColor: const Color(0xFF091D2C),
+      backgroundColor: const Color(0xFF0C1F36),
       builder: (context) {
         return Container(
           padding: const EdgeInsets.symmetric(vertical: 25, horizontal: 15),
           decoration: BoxDecoration(
-            color: const Color(0xFF091D2C),
+            color: const Color(0xFF0C1F36),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
             boxShadow: [
               BoxShadow(
@@ -118,7 +118,7 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
                     ),
                   ),
                 ),
-                // Полоса между элементами
+                 //Полоса между элементами
                 if (i < paymentOptions.length - 1) ...[
                   const SizedBox(height: 4),
                   const Divider(

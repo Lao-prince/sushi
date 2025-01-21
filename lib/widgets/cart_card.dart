@@ -123,7 +123,7 @@ class CartCard extends StatelessWidget {
                     // Цена
                     Text(
                       price,
-                      style: AppTextStyles.H3.copyWith(color: Color(0xFFD1930D)),
+                      style: AppTextStyles.H3.copyWith(color: const Color(0xFFD1930D)),
                     ),
                   ],
                 ),

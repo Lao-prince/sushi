@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../style/styles.dart';
 
-class ProductCard extends StatelessWidget {
+class ProductCard extends StatefulWidget {
   final String imageUrl;
   final String title;
   final String description;
@@ -16,6 +16,39 @@ class ProductCard extends StatelessWidget {
     required this.price,
     required this.options,
   }) : super(key: key);
+
+  @override
+  _ProductCardState createState() => _ProductCardState();
+}
+
+class _ProductCardState extends State<ProductCard> {
+  late String selectedOption;
+
+  @override
+  void initState() {
+    super.initState();
+    // Устанавливаем первый элемент как выбранный по умолчанию
+    selectedOption = widget.options.isNotEmpty ? widget.options.first : '';
+  }
+
+  String formatPortion(int number) {
+    // Получаем последние две цифры числа
+    int mod100 = number % 100;
+    // Получаем последнюю цифру числа
+    int mod10 = number % 10;
+
+    // Определяем правильное склонение
+    if (mod100 >= 11 && mod100 <= 14) {
+      return '$number порций'; // Исключение для чисел от 11 до 14
+    }
+    if (mod10 == 1) {
+      return '$number порция'; // Окончание для чисел, оканчивающихся на 1
+    }
+    if (mod10 >= 2 && mod10 <= 4) {
+      return '$number порции'; // Окончание для чисел, оканчивающихся на 2, 3, 4
+    }
+    return '$number порций'; // Окончание для всех остальных случаев
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +70,7 @@ class ProductCard extends StatelessWidget {
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
             child: Image.network(
-              imageUrl,
+              widget.imageUrl,
               height: 90,
               width: double.infinity,
               fit: BoxFit.cover,
@@ -79,14 +112,14 @@ class ProductCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        title,
+                        widget.title,
                         style: AppTextStyles.Subtitle.copyWith(),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        description,
+                        widget.description,
                         style: AppTextStyles.Caption.copyWith(),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -107,34 +140,43 @@ class ProductCard extends StatelessWidget {
                           border: Border.all(color: const Color(0xFFD1930D), width: 1.5),
                         ),
                         child: DropdownButton<String>(
-                          value: options.isNotEmpty ? options.first : null, // Установить первый элемент как выбранный
-                          items: options
-                              .map((option) => DropdownMenuItem<String>(
-                            value: option,
-                            child: Text(option),
-                          ))
+                          value: selectedOption, // Отображаем текущее выбранное значение
+                          items: widget.options
+                              .map((option) {
+                            final formattedOption = formatPortion(int.parse(option));
+                            return DropdownMenuItem<String>(
+                              value: option,
+                              child: Text(
+                                formattedOption,
+                                style: const TextStyle(color: Colors.white), // Цвет текста в меню
+                              ),
+                            );
+                          })
                               .toList(),
                           onChanged: (value) {
-                            // Обработчик выбора значения
+                            setState(() {
+                              if (value != null) {
+                                selectedOption = value; // Обновляем состояние
+                              }
+                            });
                           },
                           underline: const SizedBox(), // Убираем стандартную линию подчеркивания
                           style: const TextStyle(
                             fontSize: 14,
-                            color: Colors.white,
+                            color: Colors.white, // Цвет текста в кнопке
                           ),
-                          dropdownColor: Colors.white,
+                          dropdownColor: const Color(0xFF3A435B), // Цвет фона выпадающего списка
                           borderRadius: BorderRadius.circular(4), // Закругленные углы
                           isDense: true, // Уменьшить размер выпадающего списка
                           icon: const Icon(Icons.arrow_drop_down, color: Color(0xFFD1930D)),
                         ),
                       ),
                       Text(
-                        '$price ₽',
+                        '${widget.price} ₽',
                         style: AppTextStyles.Subtitle.copyWith(),
                       ),
                     ],
                   ),
-
 
                   const SizedBox(height: 8),
 
