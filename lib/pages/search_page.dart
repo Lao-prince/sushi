@@ -21,7 +21,7 @@ class SearchPage extends StatelessWidget {
                   style: AppTextStyles.H1.copyWith(),
                 ),
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 25),
               // Поле ввода для поиска
               Container(
                 width: double.infinity,

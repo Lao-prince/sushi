@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../models/menu_model.dart';
 import '../widgets/product_card.dart';
 import '../style/styles.dart';
 
@@ -40,20 +41,7 @@ class _MenuPageState extends State<MenuPage> {
           tempCategories.add(category);
 
           List<Product> products = (item['products'] as List<dynamic>).map((product) {
-            return Product(
-              id: product['id'].toString(),
-              imageUrl: product['imageLinks'].isNotEmpty ? product['imageLinks'][0] : '',
-              title: product['name'], // Убедитесь, что это строка
-              description: product['description'], // Убедитесь, что это строка
-              price: product['prices'].firstWhere(
-                    (price) => price['size']['isDefault'] == true,
-                orElse: () => product['prices'][0],
-              )['price']
-                  .toString(),
-              options: product['prices']
-                  .map<String>((price) => price['size']['name'] as String)
-                  .toList(),
-            );
+            return Product.fromJson(product);
           }).toList();
 
           tempCategorizedProducts[category.id] = products;
@@ -75,13 +63,12 @@ class _MenuPageState extends State<MenuPage> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 15),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -92,19 +79,19 @@ class _MenuPageState extends State<MenuPage> {
                   style: AppTextStyles.H1.copyWith(),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 25),
               // Category List
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: categories.map((category) {
                     return Padding(
-                      padding: const EdgeInsets.only(right: 12),
+                      padding: const EdgeInsets.only(right: 20),
                       child: Column(
                         children: [
                           Container(
-                            width: 42,
-                            height: 42,
+                            width: 52,
+                            height: 52,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(8),
                               color: const Color(0xFF3A435B),
@@ -119,7 +106,7 @@ class _MenuPageState extends State<MenuPage> {
                           const SizedBox(height: 8),
                           Text(
                             category.name,
-                            style: AppTextStyles.Caption.copyWith(),
+                            style: AppTextStyles.Body.copyWith(),
                             textAlign: TextAlign.center,
                           ),
                         ],
@@ -128,54 +115,63 @@ class _MenuPageState extends State<MenuPage> {
                   }).toList(),
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 15),
               const Divider(
-                thickness: 1,
+                thickness: 2,
                 color: Color(0xFF4D4D4D),
               ),
-              const SizedBox(height: 10),
+              //const SizedBox(height: 25),
               // Product Grid
-              Expanded(
-                child: isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : ListView.builder(
-                  itemCount: categories.length,
-                  itemBuilder: (context, index) {
-                    final category = categories[index];
-                    final products = categorizedProducts[category.id] ?? [];
-                    return Column(
+              Flexible(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 0), // Отступ сверху
+                  child: SingleChildScrollView(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          category.name,
-                          style: AppTextStyles.H2.copyWith(color: Colors.white),
-                        ),
-                        const SizedBox(height: 8),
-                        GridView.builder(
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 8,
-                            mainAxisSpacing: 8,
-                            childAspectRatio: 0.75,
-                          ),
-                          physics: const NeverScrollableScrollPhysics(),
-                          shrinkWrap: true,
-                          itemCount: products.length,
-                          itemBuilder: (context, productIndex) {
-                            final product = products[productIndex];
-                            return ProductCard(
-                              imageUrl: product.imageUrl,
-                              title: product.title,
-                              description: product.description,
-                              price: product.price,
-                              options: product.options,
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                    );
-                  },
+                      children: isLoading
+                          ? [const Center(child: CircularProgressIndicator())]
+                          : categories.map((category) {
+                        final products = categorizedProducts[category.id] ?? [];
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const SizedBox(height: 25),
+                            Text(
+                              category.name,
+                              style: AppTextStyles.H2.copyWith(color: Colors.white),
+                            ),
+                            const SizedBox(height: 10),
+                            GridView.builder(
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2, // Количество карточек в ряду
+                                crossAxisSpacing: 10, // Расстояние между карточками по горизонтали
+                                mainAxisSpacing: 10, // Расстояние между карточками по вертикали
+                                childAspectRatio: 0.68, // Соотношение сторон карточек
+                              ),
+                              physics: const NeverScrollableScrollPhysics(), // Убираем независимую прокрутку
+                              shrinkWrap: true, // Уменьшаем GridView до его контента
+                              itemCount: products.length, // Количество карточек
+                              itemBuilder: (context, productIndex) {
+                                final product = products[productIndex];
+                                return ProductCard(
+                                  imageUrl: product.imageLinks.isNotEmpty ? product.imageLinks[0] : '',
+                                  title: product.name,
+                                  description: product.description,
+                                  price: product.prices
+                                      .firstWhere((price) => price.size.isDefault, orElse: () => product.prices[0])
+                                      .price
+                                      .toString(),
+                                  options: product.prices.map((price) => price.size.name).toList(),
+                                );
+                              },
+                            ),
+                            //const SizedBox(height: 25),
+                          ],
+                        );
+                      }).toList(),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -184,29 +180,4 @@ class _MenuPageState extends State<MenuPage> {
       ),
     );
   }
-}
-
-class Product {
-  final String id;
-  final String imageUrl;
-  final String title;
-  final String description;
-  final String price;
-  final List<String> options;
-
-  Product({
-    required this.id,
-    required this.imageUrl,
-    required this.title,
-    required this.description,
-    required this.price,
-    required this.options,
-  });
-}
-
-class Category {
-  final String id;
-  final String name;
-
-  Category({required this.id, required this.name});
 }

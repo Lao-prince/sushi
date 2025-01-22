@@ -91,6 +91,7 @@ class CartPage extends StatelessWidget {
               price: '100 ₽',
               imagePath: 'assets/images/zaglushka.png',
             ),
+
           ],
         ),
       ),
