@@ -40,7 +40,7 @@ class _MenuPageState extends State<MenuPage> {
             name: item['category']['name'],
           );
           tempCategories.add(category);
-          _categoryKeys[category.id] = GlobalKey(); // Создаем ключ для каждой категории
+          _categoryKeys[category.id] = GlobalKey();
 
           List<Product> products = (item['products'] as List<dynamic>).map((product) {
             return Product.fromJson(product);
@@ -99,14 +99,12 @@ class _MenuPageState extends State<MenuPage> {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: categories.map((category) {
-                    // Получаем список товаров для данной категории
                     final products = categorizedProducts[category.id] ?? [];
-                    // Берём первую картинку из первого товара, если есть
                     String? firstImageUrl = products.isNotEmpty && products.first.imageLinks.isNotEmpty
                         ? products.first.imageLinks.first
                         : null;
                     return GestureDetector(
-                      onTap: () => _scrollToCategory(category.id), // Прокрутка вниз при нажатии
+                      onTap: () => _scrollToCategory(category.id),
                       child: Padding(
                         padding: const EdgeInsets.only(right: 20),
                         child: Column(
@@ -130,7 +128,7 @@ class _MenuPageState extends State<MenuPage> {
                               )
                                   : Center(
                                 child: Text(
-                                  category.name[0], // Показываем первую букву, если фото нет
+                                  category.name[0],
                                   style: const TextStyle(color: Colors.white),
                                 ),
                               ),
@@ -163,7 +161,7 @@ class _MenuPageState extends State<MenuPage> {
                         : categories.map((category) {
                       final products = categorizedProducts[category.id] ?? [];
                       return Column(
-                        key: _categoryKeys[category.id], // Присваиваем ключ категории
+                        key: _categoryKeys[category.id],
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           const SizedBox(height: 25),
@@ -172,27 +170,27 @@ class _MenuPageState extends State<MenuPage> {
                             style: AppTextStyles.H2.copyWith(color: Colors.white),
                           ),
                           const SizedBox(height: 10),
-                          GridView.builder(
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 10,
-                              mainAxisSpacing: 10,
-                              childAspectRatio: 0.68,
-                            ),
-                            physics: const NeverScrollableScrollPhysics(),
-                            shrinkWrap: true,
-                            itemCount: products.length,
-                            itemBuilder: (context, productIndex) {
-                              final product = products[productIndex];
-                              return ProductCard(
-                                imageUrl: product.imageLinks.isNotEmpty ? product.imageLinks[0] : '',
-                                title: product.name,
-                                description: product.description,
-                                price: product.prices
-                                    .firstWhere((price) => price.size.isDefault, orElse: () => product.prices[0])
-                                    .price
-                                    .toString(),
-                                options: product.prices.map((price) => price.size.name).toList(),
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              double cardWidth = (constraints.maxWidth - 10) / 2;
+                              return Wrap(
+                                spacing: 10,
+                                runSpacing: 10,
+                                children: products.map((product) {
+                                  return SizedBox(
+                                    width: cardWidth,
+                                    child: ProductCard(
+                                      imageUrl: product.imageLinks.isNotEmpty ? product.imageLinks[0] : '',
+                                      title: product.name,
+                                      description: product.description,
+                                      price: product.prices
+                                          .firstWhere((price) => price.size.isDefault, orElse: () => product.prices[0])
+                                          .price
+                                          .toString(),
+                                      options: product.prices.map((price) => price.size.name).toList(),
+                                    ),
+                                  );
+                                }).toList(),
                               );
                             },
                           ),
