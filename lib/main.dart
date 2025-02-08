@@ -5,9 +5,18 @@ import 'pages/cart_page.dart'; // Убедитесь, что путь к фай�
 import 'pages/profile_page.dart'; // Убедитесь, что путь к файлу правильный
 import 'widgets/menu_bar.dart' as custom; // Используем псевдоним
 import 'style/styles.dart'; // Файл со стилями текста
+import 'package:provider/provider.dart';
+import 'services/cart_provider.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => CartProvider()),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart';
 import '../style/styles.dart';
+import '../services/cart_provider.dart';
 
 class ProductCard extends StatefulWidget {
   final String imageUrl;
@@ -192,7 +194,7 @@ class _ProductCardState extends State<ProductCard> {
                       ),
                     ),
                     Text(
-                      'от ${widget.price} \u20BD',
+                      ' ${widget.price} \u20BD',
                       style: const TextStyle(
                         fontSize: 22,
                         fontFamily: 'HattoriHanzo',

@@ -44,7 +44,6 @@ class Product {
     required this.category,
     required this.prices,
   });
-
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
       id: json['id'],

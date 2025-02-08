@@ -16,6 +16,8 @@ class _MenuPageState extends State<MenuPage> {
   List<Category> categories = [];
   Map<String, List<Product>> categorizedProducts = {};
   bool isLoading = true;
+  final ScrollController _scrollController = ScrollController();
+  final Map<String, GlobalKey> _categoryKeys = {};
 
   @override
   void initState() {
@@ -27,7 +29,6 @@ class _MenuPageState extends State<MenuPage> {
     try {
       final response = await http.get(Uri.parse('http://89.223.122.180:9000/api/menu/'));
       if (response.statusCode == 200) {
-        // Декодируем данные явно с указанием кодировки
         final List<dynamic> data = json.decode(utf8.decode(response.bodyBytes));
 
         Map<String, List<Product>> tempCategorizedProducts = {};
@@ -36,9 +37,10 @@ class _MenuPageState extends State<MenuPage> {
         for (var item in data) {
           final category = Category(
             id: item['category']['id'].toString(),
-            name: item['category']['name'], // Убедитесь, что это строка
+            name: item['category']['name'],
           );
           tempCategories.add(category);
+          _categoryKeys[category.id] = GlobalKey(); // Создаем ключ для каждой категории
 
           List<Product> products = (item['products'] as List<dynamic>).map((product) {
             return Product.fromJson(product);
@@ -63,6 +65,17 @@ class _MenuPageState extends State<MenuPage> {
     }
   }
 
+  void _scrollToCategory(String categoryId) {
+    final keyContext = _categoryKeys[categoryId]?.currentContext;
+    if (keyContext != null) {
+      Scrollable.ensureVisible(
+        keyContext,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -80,97 +93,112 @@ class _MenuPageState extends State<MenuPage> {
                 ),
               ),
               const SizedBox(height: 25),
-              // Category List
+
+              // Горизонтальный список категорий
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: categories.map((category) {
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 20),
-                      child: Column(
-                        children: [
-                          Container(
-                            width: 52,
-                            height: 52,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              color: const Color(0xFF3A435B),
-                            ),
-                            child: Center(
-                              child: Text(
-                                category.name[0],
-                                style: const TextStyle(color: Colors.white),
+                    // Получаем список товаров для данной категории
+                    final products = categorizedProducts[category.id] ?? [];
+                    // Берём первую картинку из первого товара, если есть
+                    String? firstImageUrl = products.isNotEmpty && products.first.imageLinks.isNotEmpty
+                        ? products.first.imageLinks.first
+                        : null;
+                    return GestureDetector(
+                      onTap: () => _scrollToCategory(category.id), // Прокрутка вниз при нажатии
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 20),
+                        child: Column(
+                          children: [
+                            Container(
+                              width: 52,
+                              height: 52,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                color: const Color(0xFF3A435B),
+                              ),
+                              child: firstImageUrl != null
+                                  ? ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  firstImageUrl,
+                                  fit: BoxFit.cover,
+                                  width: 52,
+                                  height: 52,
+                                ),
+                              )
+                                  : Center(
+                                child: Text(
+                                  category.name[0], // Показываем первую букву, если фото нет
+                                  style: const TextStyle(color: Colors.white),
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            category.name,
-                            style: AppTextStyles.Body.copyWith(),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
+                            const SizedBox(height: 8),
+                            Text(
+                              category.name,
+                              style: AppTextStyles.Body.copyWith(),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   }).toList(),
                 ),
               ),
+
               const SizedBox(height: 15),
-              const Divider(
-                thickness: 2,
-                color: Color(0xFF4D4D4D),
-              ),
-              //const SizedBox(height: 25),
-              // Product Grid
+              const Divider(thickness: 2, color: Color(0xFF4D4D4D)),
+
+              // Список категорий и продуктов
               Flexible(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 0), // Отступ сверху
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: isLoading
-                          ? [const Center(child: CircularProgressIndicator())]
-                          : categories.map((category) {
-                        final products = categorizedProducts[category.id] ?? [];
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const SizedBox(height: 25),
-                            Text(
-                              category.name,
-                              style: AppTextStyles.H2.copyWith(color: Colors.white),
+                child: SingleChildScrollView(
+                  controller: _scrollController,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: isLoading
+                        ? [const Center(child: CircularProgressIndicator())]
+                        : categories.map((category) {
+                      final products = categorizedProducts[category.id] ?? [];
+                      return Column(
+                        key: _categoryKeys[category.id], // Присваиваем ключ категории
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const SizedBox(height: 25),
+                          Text(
+                            category.name,
+                            style: AppTextStyles.H2.copyWith(color: Colors.white),
+                          ),
+                          const SizedBox(height: 10),
+                          GridView.builder(
+                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 10,
+                              mainAxisSpacing: 10,
+                              childAspectRatio: 0.68,
                             ),
-                            const SizedBox(height: 10),
-                            GridView.builder(
-                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2, // Количество карточек в ряду
-                                crossAxisSpacing: 10, // Расстояние между карточками по горизонтали
-                                mainAxisSpacing: 10, // Расстояние между карточками по вертикали
-                                childAspectRatio: 0.68, // Соотношение сторон карточек
-                              ),
-                              physics: const NeverScrollableScrollPhysics(), // Убираем независимую прокрутку
-                              shrinkWrap: true, // Уменьшаем GridView до его контента
-                              itemCount: products.length, // Количество карточек
-                              itemBuilder: (context, productIndex) {
-                                final product = products[productIndex];
-                                return ProductCard(
-                                  imageUrl: product.imageLinks.isNotEmpty ? product.imageLinks[0] : '',
-                                  title: product.name,
-                                  description: product.description,
-                                  price: product.prices
-                                      .firstWhere((price) => price.size.isDefault, orElse: () => product.prices[0])
-                                      .price
-                                      .toString(),
-                                  options: product.prices.map((price) => price.size.name).toList(),
-                                );
-                              },
-                            ),
-                            //const SizedBox(height: 25),
-                          ],
-                        );
-                      }).toList(),
-                    ),
+                            physics: const NeverScrollableScrollPhysics(),
+                            shrinkWrap: true,
+                            itemCount: products.length,
+                            itemBuilder: (context, productIndex) {
+                              final product = products[productIndex];
+                              return ProductCard(
+                                imageUrl: product.imageLinks.isNotEmpty ? product.imageLinks[0] : '',
+                                title: product.name,
+                                description: product.description,
+                                price: product.prices
+                                    .firstWhere((price) => price.size.isDefault, orElse: () => product.prices[0])
+                                    .price
+                                    .toString(),
+                                options: product.prices.map((price) => price.size.name).toList(),
+                              );
+                            },
+                          ),
+                        ],
+                      );
+                    }).toList(),
                   ),
                 ),
               ),
