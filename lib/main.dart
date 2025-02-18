@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'pages/menu_page.dart'; // Убедитесь, что путь к файлу правильный
 import 'pages/search_page.dart'; // Убедитесь, что путь к файлу правильный
 import 'pages/cart_page.dart'; // Убедитесь, что путь к файлу правильный
@@ -20,7 +21,7 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -39,13 +40,23 @@ class MyApp extends StatelessWidget {
         ),
         scaffoldBackgroundColor: const Color(0xFF0C1F36), // Темный фон
       ),
+      supportedLocales: const[
+        Locale('ru', 'RU'), // Русский язык
+        Locale('en', 'US'), // Английский язык
+      ],
+      localizationsDelegates: const[
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      locale: const Locale('ru', 'RU'),
       home: const MainPage(),
     );
   }
 }
 
 class MainPage extends StatefulWidget {
-  const MainPage({Key? key}) : super(key: key);
+  const MainPage({super.key});
 
   @override
   _MainPageState createState() => _MainPageState();
@@ -55,7 +66,7 @@ class _MainPageState extends State<MainPage> {
   int _selectedIndex = 0;
 
   final List<Widget> _pages = [
-    MenuPage(), // Убедитесь, что MenuPage определен корректно
+    const MenuPage(), // Убедитесь, что MenuPage определен корректно
     SearchPage(),
     const CartPage(),
     const ProfilePage(),

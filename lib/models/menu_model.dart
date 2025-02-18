@@ -58,7 +58,6 @@ class Product {
   }
 }
 
-
 class Price {
   final Size size;
   final int price; // The price is stored as an integer

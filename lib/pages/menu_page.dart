@@ -6,7 +6,7 @@ import '../widgets/product_card.dart';
 import '../style/styles.dart';
 
 class MenuPage extends StatefulWidget {
-  const MenuPage({Key? key}) : super(key: key);
+  const MenuPage({super.key});
 
   @override
   _MenuPageState createState() => _MenuPageState();
@@ -98,11 +98,18 @@ class _MenuPageState extends State<MenuPage> {
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: categories.map((category) {
                     final products = categorizedProducts[category.id] ?? [];
                     String? firstImageUrl = products.isNotEmpty && products.first.imageLinks.isNotEmpty
                         ? products.first.imageLinks.first
                         : null;
+
+                    // Разделяем название категории по словам
+                    List<String> words = category.name.split(' ');
+                    String longestWord = words.reduce((a, b) => a.length > b.length ? a : b); // Самое длинное слово
+                    double textWidth = longestWord.length * 10.0; // Ширина по самому длинному слову
+
                     return GestureDetector(
                       onTap: () => _scrollToCategory(category.id),
                       child: Padding(
@@ -134,10 +141,16 @@ class _MenuPageState extends State<MenuPage> {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            Text(
-                              category.name,
-                              style: AppTextStyles.Body.copyWith(),
-                              textAlign: TextAlign.center,
+                            SizedBox(
+                              width: textWidth > 52 ? textWidth : 52, // Минимум ширина 52px
+                              child: Align(
+                                alignment: Alignment.center,
+                                child: Text(
+                                  words.join('\n'), // Каждое слово с новой строки
+                                  style: AppTextStyles.Body.copyWith(),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -146,10 +159,8 @@ class _MenuPageState extends State<MenuPage> {
                   }).toList(),
                 ),
               ),
-
               const SizedBox(height: 15),
               const Divider(thickness: 2, color: Color(0xFF4D4D4D)),
-
               // Список категорий и продуктов
               Flexible(
                 child: SingleChildScrollView(
