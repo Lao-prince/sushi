@@ -267,9 +267,18 @@ class _ProductCardState extends State<ProductCard> {
                     onPressed: () {
                       setState(() {
                         isAdded = true;
-                        itemCount = 1; // Начальное значение
+                        itemCount = 1; // Начальное количество
                       });
+
+                      Provider.of<CartProvider>(context, listen: false).addItem(
+                        widget.title,
+                        widget.description,
+                        widget.price,
+                        widget.imageUrl,
+                        selectedOption,
+                      );
                     },
+
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 6),
                       backgroundColor: const Color(0xFFD1930D),

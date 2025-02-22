@@ -47,15 +47,10 @@ class _SearchPageState extends State<SearchPage> {
           tempProducts.addAll(products);
         }
 
-        print('Данные из API: $data'); // Проверяем, что API вернуло
-        print('Кол-во товаров в tempProducts: ${tempProducts.length}');
-
         setState(() {
           allProducts = tempProducts;
           filteredProducts = [];
         });
-
-        print('Кол-во товаров в allProducts: ${allProducts.length}');
       } else {
         throw Exception('Failed to load menu data');
       }

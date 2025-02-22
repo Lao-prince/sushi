@@ -9,6 +9,7 @@ class AppTextStyles {
     fontWeight: FontWeight.w300,
     height: 1.0, // Соответствует line-height 36px / 36px
     letterSpacing: 0.72,
+    fontFamilyFallback: ['Arial'],
   );
 
   // H2
@@ -19,6 +20,7 @@ class AppTextStyles {
     fontWeight: FontWeight.w300,
     height: 1.07143, // 30px / 28px
     letterSpacing: 0.0, // Нет указания
+    fontFamilyFallback: ['Arial'],
   );
 
   // H3
@@ -29,6 +31,7 @@ class AppTextStyles {
     fontWeight: FontWeight.w300,
     height: 1.16667, // 28px / 24px
     letterSpacing: 0.48,
+    fontFamilyFallback: ['Arial'],
   );
 
   // Title
@@ -39,6 +42,7 @@ class AppTextStyles {
     fontWeight: FontWeight.w300,
     height: 1.2, // 24px / 20px
     letterSpacing: 0.2,
+    fontFamilyFallback: ['Arial'],
   );
 
   // Subtitle
@@ -49,6 +53,7 @@ class AppTextStyles {
     fontWeight: FontWeight.w300,
     height: 0.94444, // 17px / 18px
     letterSpacing: 0.54,
+    fontFamilyFallback: ['Arial'],
   );
 
   // Body
@@ -59,6 +64,7 @@ class AppTextStyles {
     fontWeight: FontWeight.w300,
     height: 0.9375, // 15px / 16px
     letterSpacing: 0.0, // Нет указания
+    fontFamilyFallback: ['Arial'],
   );
 
   // Caption
@@ -69,5 +75,6 @@ class AppTextStyles {
     fontWeight: FontWeight.w300,
     height: 1.14286, // 16px / 14px
     letterSpacing: 0.0, // Нет указания
+    fontFamilyFallback: ['Arial'],
   );
 }

@@ -1,17 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../services/cart_provider.dart';
 import '../style/styles.dart';
-import 'cart_checkout_page.dart';
 import '../widgets/cart_card.dart';
+import 'cart_checkout_page.dart';
+
 
 class CartPage extends StatelessWidget {
   const CartPage({Key? key}) : super(key: key);
 
+  String getPortionText(int count) {
+    if (count % 10 == 1 && count % 100 != 11) {
+      return '$count порция';
+    } else if ([2, 3, 4].contains(count % 10) && ![12, 13, 14].contains(count % 100)) {
+      return '$count порции';
+    } else {
+      return '$count порций';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     const double circleRadius = 15; // Circle radius
+    var cartProvider = Provider.of<CartProvider>(context);
+    var cartItems = cartProvider.items;
+
+
+
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView( // Оборачиваем в SingleChildScrollView для прокрутки
+        child: SingleChildScrollView( // Obsolete SingleChildScrollView for scrolling
           child: Column(
             children: [
               const SizedBox(height: 20),
@@ -36,17 +54,33 @@ class CartPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              // Верхний блок с товарами
-              _topCartSummary(context),
-              const SizedBox(height: 20),
-              // Новый блок "Приборы"
-              _instrumentsBlock(context),
-              const SizedBox(height: 20),
-              // Новый блок "Дополнительно"
-              _additionalBlock(context),
-              const SizedBox(height: 20),
-              // Bottom block with order details and button
-              _bottomOrderDetails(context),
+              // Top block with items
+              cartItems.isEmpty
+                  ? Padding(
+                padding: const EdgeInsets.only(top: 100),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset(
+                      'assets/images/sushi.png',
+                      width: 150,
+                      height: 150,
+                      fit: BoxFit.contain,
+                    ),
+                    Center(
+                      child: Text(
+                        'Ваша корзина пуста',
+                        style: AppTextStyles.H2.copyWith(color: Color(0xFF555555)),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+                  : _topCartSummary(cartItems, cartProvider),
+
+
+              if (cartItems.isNotEmpty) _bottomOrderDetails(context),
             ],
           ),
         ),
@@ -54,94 +88,7 @@ class CartPage extends StatelessWidget {
     );
   }
 
-  // Новый блок "Приборы"
-  Widget _instrumentsBlock(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 15),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 25, horizontal: 10),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: const Color(0xFFD1930D), width: 1.5),
-          gradient: const LinearGradient(
-            colors: [Color(0xFF3A435B), Color(0xFF0A0A0A)],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Приборы',
-              style: AppTextStyles.H2.copyWith(color: Colors.white),
-            ),
-            const SizedBox(height: 15),
-            // Добавим картинку или товар для прибора
-            const CartCard(
-              title: 'Прибор "Ложка для суши"',
-              subtitle: '1 шт',
-              price: '150 ₽',
-              imagePath: 'assets/images/sushi.jpg',
-            ),
-            const SizedBox(height: 15),
-            const CartCard(
-              title: 'Прибор "Вилка"',
-              subtitle: '2 шт',
-              price: '100 ₽',
-              imagePath: 'assets/images/zaglushka.png',
-            ),
-
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Новый блок "Дополнительно"
-  Widget _additionalBlock(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 15),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 25, horizontal: 10),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: const Color(0xFFD1930D), width: 1.5),
-          gradient: const LinearGradient(
-            colors: [Color(0xFF3A435B), Color(0xFF0A0A0A)],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Дополнительно',
-              style: AppTextStyles.H2.copyWith(color: Colors.white),
-            ),
-            const SizedBox(height: 15),
-            // Добавим товары для дополнительных товаров
-            const CartCard(
-              title: 'Соус "Соевый"',
-              subtitle: '1 шт',
-              price: '50 ₽',
-              imagePath: 'assets/images/sushi.jpg',
-            ),
-            const SizedBox(height: 15),
-            const CartCard(
-              title: 'Имбирь',
-              subtitle: '1 шт',
-              price: '30 ₽',
-              imagePath: 'assets/images/zaglushka.png',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _topCartSummary(BuildContext context) {
+  Widget _topCartSummary(List<Map<String, dynamic>> cartItems, CartProvider cartProvider) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 15),
       child: Container(
@@ -163,22 +110,33 @@ class CartPage extends StatelessWidget {
               style: AppTextStyles.H2.copyWith(color: Colors.white),
             ),
             const SizedBox(height: 15),
-            // Использование CartCard
-            const CartCard(
-              title: 'Суши "Спайси Унаги Гриль',
-              subtitle: '6 штук',
-              price: '530 ₽',
-              imagePath: 'assets/images/sushi.jpg',
+            // Use CartCard to display items
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(), // Запрещаем прокрутку внутри ScrollView
+              itemCount: cartItems.length,
+              itemBuilder: (context, index) {
+                var item = cartItems[index];
+                return Column(
+                  children: [
+                    CartCard(
+                      title: item['title'],
+                      subtitle: getPortionText(int.tryParse(item['selectedOption'].toString()) ?? 1),
+                      price: '${(item['price'] * item['quantity']).toStringAsFixed(0)} \u20BD',
+                      imagePath: item['imageUrl'],
+                      quantity: item['quantity'],
+                      onRemove: () => cartProvider.updateQuantity(index, item['quantity'] - 1),
+                      onAdd: () => cartProvider.updateQuantity(index, item['quantity'] + 1),
+                      onDelete: () => cartProvider.removeItem(index), // Новый метод удаления
+                    ),
+                    // Показываем Divider только если это не последний элемент
+                    if (index < cartItems.length - 1)
+                      const Divider(color: Color(0xFF4D4D4D), thickness: 1),
+                  ],
+                );
+              },
             ),
-            const SizedBox(height: 8),
-            const Divider(color: Color(0xFF4D4D4D), thickness: 1),
-            const SizedBox(height: 8),
-            const CartCard(
-              title: 'Сет "Ассорти"',
-              subtitle: '12 штук',
-              price: '1250 ₽',
-              imagePath: 'assets/images/zaglushka.png',
-            ),
+            // Clear cart button
           ],
         ),
       ),
@@ -186,8 +144,11 @@ class CartPage extends StatelessWidget {
   }
 
   Widget _bottomOrderDetails(BuildContext context) {
+    var cartProvider = Provider.of<CartProvider>(context);
+    double total = cartProvider.totalPrice;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 15), // Отступы по 15px от краев приложения
+      padding: const EdgeInsets.symmetric(horizontal: 15),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 25, horizontal: 10),
         decoration: BoxDecoration(
@@ -221,7 +182,7 @@ class CartPage extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('Сумма заказа', style: AppTextStyles.H3.copyWith(color: Colors.grey)),
-                        Text('630 ₽', style: AppTextStyles.H3.copyWith(color: Colors.white)),
+                        Text('${total % 1 == 0 ? total.toInt() : total} \u20BD', style: AppTextStyles.H3.copyWith(color: Colors.white)),
                       ],
                     ),
                     const SizedBox(height: 6),
@@ -231,7 +192,7 @@ class CartPage extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('Итого', style: AppTextStyles.H3.copyWith(color: const Color(0xFFD1930D), fontWeight: FontWeight.bold)),
-                        Text('630 ₽', style: AppTextStyles.H3.copyWith(color: const Color(0xFFD1930D), fontWeight: FontWeight.bold)),
+                        Text('${total % 1 == 0 ? total.toInt() : total} \u20BD', style: AppTextStyles.H3.copyWith(color: const Color(0xFFD1930D), fontWeight: FontWeight.bold)),
                       ],
                     ),
                   ],
@@ -265,6 +226,7 @@ class CartPage extends StatelessWidget {
       ),
     );
   }
+
 
   Widget _stepIndicator(String step, String label, bool isActive) {
     return Column(
@@ -309,6 +271,7 @@ class CartPage extends StatelessWidget {
     );
   }
 }
+
 
 class DottedLinePainter extends CustomPainter {
   final Color color;

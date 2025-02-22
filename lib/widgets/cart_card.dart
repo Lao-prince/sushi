@@ -6,6 +6,10 @@ class CartCard extends StatelessWidget {
   final String subtitle;
   final String price;
   final String imagePath;
+  final int quantity;
+  final VoidCallback onRemove;
+  final VoidCallback onAdd;
+  final VoidCallback onDelete; // Новый коллбэк для удаления товара
 
   const CartCard({
     Key? key,
@@ -13,7 +17,12 @@ class CartCard extends StatelessWidget {
     required this.subtitle,
     required this.price,
     required this.imagePath,
+    required this.quantity,
+    required this.onRemove,
+    required this.onAdd,
+    required this.onDelete, // Передаем коллбэк удаления
   }) : super(key: key);
+
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +44,7 @@ class CartCard extends StatelessWidget {
                   fit: BoxFit.cover,
                 ),
               ),
-              height: 100, // Высота для прямоугольного изображения
+              height: 100,
             ),
           ),
           const SizedBox(width: 12),
@@ -58,44 +67,43 @@ class CartCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    // Иконка удаления
+                    // Иконка удаления (теперь вызывает `onDelete`)
                     SizedBox(
                       width: 25,
                       height: 25,
                       child: IconButton(
-                        padding: EdgeInsets.zero, // Убираем внутренние отступы
+                        padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
-                        onPressed: () {},
+                        onPressed: onDelete, // Вызываем функцию удаления
                         icon: const Icon(
-                          Icons.delete_outlined,
-                          color: const Color(0xFFEB8B8D),
-                          size: 25, // Устанавливаем размер иконки
+                          Icons.delete_outline_rounded,
+                          color: Color(0xFF555555),
+                          size: 25,
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 4), // Отступ 4px между заголовком и описанием
-                // Описание
+                const SizedBox(height: 4),
                 Text(
                   subtitle,
                   style: AppTextStyles.Body.copyWith(color: const Color(0xFF848484)),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 24), // Отступ между описанием и блоком порций
-                // Блок порций и цены
+                const SizedBox(height: 24),
+                // Блок управления количеством и ценой
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Контейнер с кнопками минус и плюс
+                    // Блок с кнопками `-` и `+`
                     Container(
-                      height: 24, // Устанавливаем высоту блока
+                      height: 24,
                       decoration: const BoxDecoration(
-                        color: Color(0xFFD1930D), // Золотой фон
+                        color: Color(0xFFD1930D),
                         borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(25), // Закругление верхнего левого угла
-                          bottomRight: Radius.circular(25), // Закругление нижнего правого угла
+                          topLeft: Radius.circular(25),
+                          bottomRight: Radius.circular(25),
                         ),
                       ),
                       child: Row(
@@ -104,18 +112,18 @@ class CartCard extends StatelessWidget {
                           IconButton(
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
-                            onPressed: () {},
-                            icon: const Icon(Icons.remove, color: Colors.white), // Белая иконка
+                            onPressed: onRemove, // Теперь `onRemove` только уменьшает количество
+                            icon: const Icon(Icons.remove, color: Colors.white),
                           ),
                           Text(
-                            '1',
-                            style: AppTextStyles.Subtitle.copyWith(color: Colors.white), // Белый текст
+                            '$quantity',
+                            style: AppTextStyles.Subtitle.copyWith(color: Colors.white),
                           ),
                           IconButton(
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
-                            onPressed: () {},
-                            icon: const Icon(Icons.add, color: Colors.white), // Белая иконка
+                            onPressed: onAdd,
+                            icon: const Icon(Icons.add, color: Colors.white),
                           ),
                         ],
                       ),

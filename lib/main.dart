@@ -66,7 +66,7 @@ class _MainPageState extends State<MainPage> {
   int _selectedIndex = 0;
 
   final List<Widget> _pages = [
-    const MenuPage(), // Убедитесь, что MenuPage определен корректно
+    MenuPage(), // Убедитесь, что MenuPage определен корректно
     SearchPage(),
     const CartPage(),
     const ProfilePage(),
