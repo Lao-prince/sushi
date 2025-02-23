@@ -26,9 +26,8 @@ class ProductCard extends StatefulWidget {
 
 class _ProductCardState extends State<ProductCard> {
   late String selectedOption;
-  bool isAdded = false; // Состояние кнопки "Добавить"
-  int itemCount = 1; // Количество выбранных товаров
-  bool isFavorite = false; // Состояние кнопки сердца
+  int itemCount = 1;
+  bool isFavorite = false;
 
   @override
   void initState() {
@@ -54,6 +53,9 @@ class _ProductCardState extends State<ProductCard> {
 
   @override
   Widget build(BuildContext context) {
+    final cartProvider = Provider.of<CartProvider>(context);
+    final int cartItemCount = cartProvider.getItemCount(widget.title, selectedOption);
+
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(15),
@@ -138,21 +140,12 @@ class _ProductCardState extends State<ProductCard> {
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 15),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  widget.title,
-                  style: AppTextStyles.Title.copyWith(),
-                  textAlign: TextAlign.left,
-                ),
+                Text(widget.title, style: AppTextStyles.Title),
                 const SizedBox(height: 4),
                 Text(
                   widget.description,
-                  style: AppTextStyles.Body.copyWith(
-                    color: const Color(0xFF555555),
-                    height: 1.34,
-                  ),
-                  textAlign: TextAlign.left,
+                  style: AppTextStyles.Body.copyWith(color: const Color(0xFF555555)),
                 ),
                 const SizedBox(height: 8),
 
@@ -205,10 +198,11 @@ class _ProductCardState extends State<ProductCard> {
                   ],
                 ),
                 const SizedBox(height: 10),
-                // Кнопка "Добавить" или панель
+
+                // Поведение кнопки "Добавить" или счетчик
                 SizedBox(
-                  height: 40, // Фиксированная высота для кнопки
-                  child: isAdded
+                  height: 40,
+                  child: cartItemCount > 0
                       ? Container(
                     decoration: const BoxDecoration(
                       color: Color(0xFFD1930D),
@@ -219,45 +213,37 @@ class _ProductCardState extends State<ProductCard> {
                     ),
                     child: Row(
                       children: [
-                        // Левая часть для уменьшения
+                        // Уменьшение
                         Expanded(
                           child: InkWell(
                             onTap: () {
-                              setState(() {
-                                if (itemCount > 1) {
-                                  itemCount--;
-                                } else {
-                                  isAdded = false; // Возврат к кнопке "Добавить"
-                                }
-                              });
+                              cartProvider.removeItem(widget.title, selectedOption);
                             },
-                            child: const Center(
-                              child: Icon(Icons.remove, color: Colors.white),
-                            ),
+                            child: const Center(child: Icon(Icons.remove, color: Colors.white)),
                           ),
                         ),
-                        // Центральная часть для отображения количества
+                        // Количество
                         Expanded(
                           child: Center(
                             child: Text(
-                              '$itemCount',
-                              style: AppTextStyles.Subtitle.copyWith(
-                                color: Colors.white, // Белый текст
-                              ),
+                              '$cartItemCount',
+                              style: AppTextStyles.Subtitle.copyWith(color: Colors.white),
                             ),
                           ),
                         ),
-                        // Правая часть для увеличения
+                        // Увеличение
                         Expanded(
                           child: InkWell(
                             onTap: () {
-                              setState(() {
-                                itemCount++;
-                              });
+                              cartProvider.addItem(
+                                widget.title,
+                                widget.description,
+                                widget.price,
+                                widget.imageUrl,
+                                selectedOption,
+                              );
                             },
-                            child: const Center(
-                              child: Icon(Icons.add, color: Colors.white),
-                            ),
+                            child: const Center(child: Icon(Icons.add, color: Colors.white)),
                           ),
                         ),
                       ],
@@ -265,12 +251,7 @@ class _ProductCardState extends State<ProductCard> {
                   )
                       : ElevatedButton(
                     onPressed: () {
-                      setState(() {
-                        isAdded = true;
-                        itemCount = 1; // Начальное количество
-                      });
-
-                      Provider.of<CartProvider>(context, listen: false).addItem(
+                      cartProvider.addItem(
                         widget.title,
                         widget.description,
                         widget.price,
@@ -278,9 +259,7 @@ class _ProductCardState extends State<ProductCard> {
                         selectedOption,
                       );
                     },
-
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
                       backgroundColor: const Color(0xFFD1930D),
                       shape: const RoundedRectangleBorder(
                         borderRadius: BorderRadius.only(
@@ -290,26 +269,17 @@ class _ProductCardState extends State<ProductCard> {
                       ),
                     ),
                     child: Row(
-                      mainAxisSize: MainAxisSize.min, // Минимальная ширина кнопки
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Иконка shopping.svg
                         Padding(
                           padding: const EdgeInsets.only(right: 12),
                           child: SizedBox(
                             width: 18,
                             height: 18,
-                            child: SvgPicture.asset(
-                              'assets/images/shopping.svg', // Путь к иконке
-                              //color: Colors.white, // Белый цвет иконки
-                            ),
+                            child: SvgPicture.asset('assets/images/shopping.svg'),
                           ),
                         ),
-                        // Текст кнопки
-                        Text(
-                          'Добавить',
-                          style: AppTextStyles.Subtitle.copyWith(),
-                        ),
+                        Text('Добавить', style: AppTextStyles.Subtitle),
                       ],
                     ),
                   ),

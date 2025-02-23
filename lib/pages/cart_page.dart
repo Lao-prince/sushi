@@ -77,7 +77,7 @@ class CartPage extends StatelessWidget {
                   ],
                 ),
               )
-                  : _topCartSummary(cartItems, cartProvider),
+                  : _topCartSummary(cartProvider),
               const SizedBox(height: 20),
               if (cartItems.isNotEmpty) _bottomOrderDetails(context),
             ],
@@ -87,7 +87,9 @@ class CartPage extends StatelessWidget {
     );
   }
 
-  Widget _topCartSummary(List<Map<String, dynamic>> cartItems, CartProvider cartProvider) {
+  Widget _topCartSummary(CartProvider cartProvider) {
+    var cartItems = cartProvider.items.values.toList(); // Получаем список товаров
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 15),
       child: Container(
@@ -109,10 +111,9 @@ class CartPage extends StatelessWidget {
               style: AppTextStyles.H2.copyWith(color: Colors.white),
             ),
             const SizedBox(height: 15),
-            // Use CartCard to display items
             ListView.builder(
               shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(), // Запрещаем прокрутку внутри ScrollView
+              physics: const NeverScrollableScrollPhysics(),
               itemCount: cartItems.length,
               itemBuilder: (context, index) {
                 var item = cartItems[index];
@@ -124,23 +125,24 @@ class CartPage extends StatelessWidget {
                       price: '${(item['price'] * item['quantity']).toStringAsFixed(0)} \u20BD',
                       imagePath: item['imageUrl'],
                       quantity: item['quantity'],
-                      onRemove: () => cartProvider.updateQuantity(index, item['quantity'] - 1),
-                      onAdd: () => cartProvider.updateQuantity(index, item['quantity'] + 1),
-                      onDelete: () => cartProvider.removeItem(index), // Новый метод удаления
+                      onRemove: () => cartProvider.updateQuantity(
+                          item['title'], item['selectedOption'], item['quantity'] - 1),
+                      onAdd: () => cartProvider.updateQuantity(
+                          item['title'], item['selectedOption'], item['quantity'] + 1),
+                      onDelete: () => cartProvider.removeItem(item['title'], item['selectedOption']),
                     ),
-                    // Показываем Divider только если это не последний элемент
                     if (index < cartItems.length - 1)
                       const Divider(color: Color(0xFF4D4D4D), thickness: 1),
                   ],
                 );
               },
             ),
-            // Clear cart button
           ],
         ),
       ),
     );
   }
+
 
   Widget _bottomOrderDetails(BuildContext context) {
     var cartProvider = Provider.of<CartProvider>(context);
