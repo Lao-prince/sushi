@@ -93,11 +93,11 @@ class _ProductCardState extends State<ProductCard> {
                     );
                   },
                   errorBuilder: (context, error, stackTrace) {
-                    return Container(
+                    return Image.asset(
+                      'assets/images/zaglushka.png',
                       height: 110,
                       width: double.infinity,
-                      color: Colors.grey[200],
-                      child: const Icon(Icons.broken_image, color: Colors.grey),
+                      fit: BoxFit.cover,
                     );
                   },
                 ),

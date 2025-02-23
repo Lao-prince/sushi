@@ -78,8 +78,7 @@ class CartPage extends StatelessWidget {
                 ),
               )
                   : _topCartSummary(cartItems, cartProvider),
-
-
+              const SizedBox(height: 20),
               if (cartItems.isNotEmpty) _bottomOrderDetails(context),
             ],
           ),

@@ -7,6 +7,7 @@ import 'pages/profile_page.dart'; // Убедитесь, что путь к фа
 import 'widgets/menu_bar.dart' as custom; // Используем псевдоним
 import 'style/styles.dart'; // Файл со стилями текста
 import 'package:provider/provider.dart';
+import 'services/menu_provider.dart';
 import 'services/cart_provider.dart';
 
 void main() {
@@ -14,6 +15,7 @@ void main() {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => CartProvider()),
+        ChangeNotifierProvider(create: (_) => MenuProvider()),
       ],
       child: const MyApp(),
     ),

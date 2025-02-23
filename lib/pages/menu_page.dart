@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import '../models/menu_model.dart';
+import 'package:provider/provider.dart';
+import '../services/menu_provider.dart';
 import '../widgets/product_card.dart';
 import '../style/styles.dart';
 
@@ -13,57 +12,8 @@ class MenuPage extends StatefulWidget {
 }
 
 class _MenuPageState extends State<MenuPage> {
-  List<Category> categories = [];
-  Map<String, List<Product>> categorizedProducts = {};
-  bool isLoading = true;
   final ScrollController _scrollController = ScrollController();
   final Map<String, GlobalKey> _categoryKeys = {};
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchMenuData();
-  }
-
-  Future<void> _fetchMenuData() async {
-    try {
-      final response = await http.get(Uri.parse('http://89.223.122.180:9000/api/menu/'));
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(utf8.decode(response.bodyBytes));
-
-        Map<String, List<Product>> tempCategorizedProducts = {};
-        List<Category> tempCategories = [];
-
-        for (var item in data) {
-          final category = Category(
-            id: item['category']['id'].toString(),
-            name: item['category']['name'],
-          );
-          tempCategories.add(category);
-          _categoryKeys[category.id] = GlobalKey();
-
-          List<Product> products = (item['products'] as List<dynamic>).map((product) {
-            return Product.fromJson(product);
-          }).toList();
-
-          tempCategorizedProducts[category.id] = products;
-        }
-
-        setState(() {
-          categories = tempCategories;
-          categorizedProducts = tempCategorizedProducts;
-          isLoading = false;
-        });
-      } else {
-        throw Exception('Failed to load menu data');
-      }
-    } catch (error) {
-      print('Error fetching menu data: $error');
-      setState(() {
-        isLoading = false;
-      });
-    }
-  }
 
   void _scrollToCategory(String categoryId) {
     final keyContext = _categoryKeys[categoryId]?.currentContext;
@@ -78,6 +28,11 @@ class _MenuPageState extends State<MenuPage> {
 
   @override
   Widget build(BuildContext context) {
+    final menuProvider = Provider.of<MenuProvider>(context);
+    final categories = menuProvider.categories;
+    final categorizedProducts = menuProvider.categorizedProducts;
+    final isLoading = menuProvider.isLoading;
+
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -93,86 +48,91 @@ class _MenuPageState extends State<MenuPage> {
                 ),
               ),
               const SizedBox(height: 25),
-
               // Горизонтальный список категорий
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: categories.map((category) {
-                    final products = categorizedProducts[category.id] ?? [];
-                    String? firstImageUrl = products.isNotEmpty && products.first.imageLinks.isNotEmpty
-                        ? products.first.imageLinks.first
-                        : null;
+              Consumer<MenuProvider>(
+                builder: (context, menuProvider, child) {
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: menuProvider.categories.map((category) {
+                        final products = menuProvider.categorizedProducts[category.id] ?? [];
+                        String? firstImageUrl = products.isNotEmpty && products.first.imageLinks.isNotEmpty
+                            ? products.first.imageLinks.first
+                            : null;
 
-                    // Разделяем название категории по словам
-                    List<String> words = category.name.split(' ');
-                    String longestWord = words.reduce((a, b) => a.length > b.length ? a : b); // Самое длинное слово
-                    double textWidth = longestWord.length * 10.0; // Ширина по самому длинному слову
+                        // Разделяем название категории по словам
+                        List<String> words = category.name.split(' ');
+                        String longestWord = words.reduce((a, b) => a.length > b.length ? a : b);
+                        double textWidth = longestWord.length * 10.0;
 
-                    return GestureDetector(
-                      onTap: () => _scrollToCategory(category.id),
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: 20),
-                        child: Column(
-                          children: [
-                            Container(
-                              width: 52,
-                              height: 52,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(8),
-                                color: const Color(0xFF3A435B),
-                              ),
-                              child: firstImageUrl != null
-                                  ? ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.network(
-                                  firstImageUrl,
-                                  fit: BoxFit.cover,
+                        return GestureDetector(
+                          onTap: () => _scrollToCategory(category.id), // Теперь скроллит к категории
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 20),
+                            child: Column(
+                              children: [
+                                Container(
                                   width: 52,
                                   height: 52,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(8),
+                                    color: const Color(0xFF3A435B),
+                                  ),
+                                  child: firstImageUrl != null
+                                      ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(
+                                      firstImageUrl,
+                                      fit: BoxFit.cover,
+                                      width: 52,
+                                      height: 52,
+                                    ),
+                                  )
+                                      : Center(
+                                    child: Text(
+                                      category.name[0],
+                                      style: const TextStyle(color: Colors.white),
+                                    ),
+                                  ),
                                 ),
-                              )
-                                  : Center(
-                                child: Text(
-                                  category.name[0],
-                                  style: const TextStyle(color: Colors.white),
+                                const SizedBox(height: 8),
+                                SizedBox(
+                                  width: textWidth > 52 ? textWidth : 52,
+                                  child: Align(
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      words.join('\n'),
+                                      style: AppTextStyles.Body.copyWith(),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
                                 ),
-                              ),
+                              ],
                             ),
-                            const SizedBox(height: 8),
-                            SizedBox(
-                              width: textWidth > 52 ? textWidth : 52, // Минимум ширина 52px
-                              child: Align(
-                                alignment: Alignment.center,
-                                child: Text(
-                                  words.join('\n'), // Каждое слово с новой строки
-                                  style: AppTextStyles.Body.copyWith(),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 15),
               const Divider(thickness: 2, color: Color(0xFF4D4D4D)),
               // Список категорий и продуктов
-              Flexible(
+              Expanded(
                 child: SingleChildScrollView(
-                  controller: _scrollController,
+                  controller: _scrollController, // Применяем контроллер
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: isLoading
                         ? [const Center(child: CircularProgressIndicator())]
                         : categories.map((category) {
+                      _categoryKeys.putIfAbsent(category.id, () => GlobalKey());
+
                       final products = categorizedProducts[category.id] ?? [];
                       return Column(
-                        key: _categoryKeys[category.id],
+                        key: _categoryKeys[category.id], // Применяем ключ для прокрутки
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           const SizedBox(height: 25),
