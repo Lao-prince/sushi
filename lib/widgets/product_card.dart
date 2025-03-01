@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import '../style/styles.dart';
 import '../services/cart_provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ProductCard extends StatefulWidget {
   final String imageUrl;
@@ -74,34 +75,25 @@ class _ProductCardState extends State<ProductCard> {
           Stack(
             children: [
               ClipRRect(
-                borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(15)),
-                child: Image.network(
-                  widget.imageUrl,
-                  height: 110,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+                child: SizedBox(
+                  height: 120,
                   width: double.infinity,
-                  fit: BoxFit.cover,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) {
-                      return child;
-                    }
-                    return Container(
-                      height: 110,
-                      width: double.infinity,
-                      color: Colors.grey[200],
-                      child: const Center(
-                        child: CircularProgressIndicator(),
+                  child: CachedNetworkImage(
+                    imageUrl: widget.imageUrl,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFFD1930D),
                       ),
-                    );
-                  },
-                  errorBuilder: (context, error, stackTrace) {
-                    return Image.asset(
+                    ),
+                    errorWidget: (context, url, error) => Image.asset(
                       'assets/images/zaglushka.png',
-                      height: 110,
-                      width: double.infinity,
                       fit: BoxFit.cover,
-                    );
-                  },
+                    ),
+                    memCacheWidth: 600,
+                    memCacheHeight: 300,
+                  ),
                 ),
               ),
               // Кнопка сердца

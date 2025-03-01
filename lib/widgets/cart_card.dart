@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../style/styles.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class CartCard extends StatelessWidget {
   final String title;
@@ -36,15 +37,31 @@ class CartCard extends StatelessWidget {
           // Левый блок: изображение
           Flexible(
             flex: 1,
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(5),
-                image: DecorationImage(
-                  image: AssetImage(imagePath),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(5),
+              child: SizedBox(
+                height: 120,
+                width: 120, // Увеличиваем ширину тоже для сохранения пропорций
+                child: CachedNetworkImage(
+                  imageUrl: imagePath,
                   fit: BoxFit.cover,
+                  placeholder: (context, url) => const Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFFD1930D),
+                    ),
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    width: 120,
+                    height: 120,
+                    child: Image.asset(
+                      'assets/images/zaglushka.png',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  memCacheWidth: 200,
+                  memCacheHeight: 200,
                 ),
               ),
-              height: 100,
             ),
           ),
           const SizedBox(width: 12),
@@ -99,6 +116,7 @@ class CartCard extends StatelessWidget {
                     // Блок с кнопками `-` и `+`
                     Container(
                       height: 24,
+                      width: 100, // Фиксированная минимальная ширина
                       decoration: const BoxDecoration(
                         color: Color(0xFFD1930D),
                         borderRadius: BorderRadius.only(
@@ -107,23 +125,30 @@ class CartCard extends StatelessWidget {
                         ),
                       ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          IconButton(
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            onPressed: onRemove, // Теперь `onRemove` только уменьшает количество
-                            icon: const Icon(Icons.remove, color: Colors.white),
+                          Expanded(
+                            child: IconButton(
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: onRemove,
+                              icon: const Icon(Icons.remove, color: Colors.white, size: 18),
+                            ),
                           ),
-                          Text(
-                            '$quantity',
-                            style: AppTextStyles.Subtitle.copyWith(color: Colors.white),
+                          Expanded(
+                            child: Text(
+                              '$quantity',
+                              textAlign: TextAlign.center,
+                              style: AppTextStyles.Subtitle.copyWith(color: Colors.white),
+                            ),
                           ),
-                          IconButton(
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            onPressed: onAdd,
-                            icon: const Icon(Icons.add, color: Colors.white),
+                          Expanded(
+                            child: IconButton(
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: onAdd,
+                              icon: const Icon(Icons.add, color: Colors.white, size: 18),
+                            ),
                           ),
                         ],
                       ),

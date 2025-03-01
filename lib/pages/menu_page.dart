@@ -91,48 +91,61 @@ class _MenuPageState extends State<MenuPage> {
                         double textWidth = longestWord.length * 10.0;
 
                         return GestureDetector(
-                          onTap: () => _scrollToCategory(category.id), // Теперь скроллит к категории
+                          onTap: () {
+                            menuProvider.setSelectedCategory(category.id);
+                            _scrollToCategory(category.id);
+                          },
                           child: Padding(
-                            padding: const EdgeInsets.only(right: 20),
-                            child: Column(
-                              children: [
-                                Container(
-                                  width: 52,
-                                  height: 52,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(8),
-                                    color: const Color(0xFF3A435B),
-                                  ),
-                                  child: firstImageUrl != null
-                                      ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Image.network(
-                                      firstImageUrl,
-                                      fit: BoxFit.cover,
-                                      width: 52,
-                                      height: 52,
+                            padding: const EdgeInsets.only(right: 12),
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                color: menuProvider.selectedCategoryId == category.id 
+                                  ? const Color(0xFFD1930D)
+                                  : Colors.transparent,
+                              ),
+                              child: Column(
+                                children: [
+                                  Container(
+                                    width: 52,
+                                    height: 52,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(8),
+                                      color: const Color(0xFF3A435B),
                                     ),
-                                  )
-                                      : Center(
-                                    child: Text(
-                                      category.name[0],
-                                      style: const TextStyle(color: Colors.white),
+                                    child: firstImageUrl != null
+                                        ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.network(
+                                        firstImageUrl,
+                                        fit: BoxFit.cover,
+                                        width: 52,
+                                        height: 52,
+                                      ),
+                                    )
+                                        : Center(
+                                      child: Text(
+                                        category.name[0],
+                                        style: const TextStyle(color: Colors.white),
+                                      ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(height: 8),
-                                SizedBox(
-                                  width: textWidth > 52 ? textWidth : 52,
-                                  child: Align(
-                                    alignment: Alignment.center,
+                                  const SizedBox(height: 8),
+                                  SizedBox(
+                                    width: textWidth > 52 ? textWidth : 52,
                                     child: Text(
                                       words.join('\n'),
-                                      style: AppTextStyles.Body.copyWith(),
                                       textAlign: TextAlign.center,
+                                      style: AppTextStyles.Body.copyWith(
+                                        color: menuProvider.selectedCategoryId == category.id 
+                                          ? Colors.black
+                                          : Colors.white,
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         );

@@ -11,6 +11,11 @@ import 'services/menu_provider.dart';
 import 'services/cart_provider.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Настраиваем размер кэша изображений
+  PaintingBinding.instance.imageCache.maximumSize = 200;
+  
   runApp(
     MultiProvider(
       providers: [

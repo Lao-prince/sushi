@@ -34,7 +34,7 @@ class _SearchPageState extends State<SearchPage> {
 
   Future<void> _fetchMenuData() async {
     try {
-      final response = await http.get(Uri.parse('http://89.223.122.180:9000/api/menu/'));
+      final response = await http.get(Uri.parse('http://89.223.122.180:10000/api/menu/'));
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(utf8.decode(response.bodyBytes));
 

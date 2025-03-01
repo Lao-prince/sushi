@@ -10,12 +10,14 @@ class MenuProvider extends ChangeNotifier {
   bool _isLoadingMore = false;
   bool _hasMoreData = true;
   int _page = 1; // Начальная страница
+  String? _selectedCategoryId; // Добавляем поле для хранения ID выбранной категории
 
   List<Category> get categories => _categories;
   Map<String, List<Product>> get categorizedProducts => _categorizedProducts;
   bool get isLoading => _isLoading;
   bool get isLoadingMore => _isLoadingMore;
   bool get hasMoreData => _hasMoreData;
+  String? get selectedCategoryId => _selectedCategoryId; // Геттер для ID выбранной категории
 
   MenuProvider() {
     _fetchMenuData();
@@ -32,7 +34,7 @@ class MenuProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await http.get(Uri.parse('http://89.223.122.180:9000/api/menu/?page=$_page'));
+      final response = await http.get(Uri.parse('http://89.223.122.180:10000/api/menu/?page=$_page'));
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(utf8.decode(response.bodyBytes));
@@ -74,5 +76,11 @@ class MenuProvider extends ChangeNotifier {
 
   Future<void> loadMoreProducts() async {
     await _fetchMenuData(isLoadMore: true);
+  }
+
+  // Метод для установки выбранной категории
+  void setSelectedCategory(String categoryId) {
+    _selectedCategoryId = categoryId;
+    notifyListeners();
   }
 }
