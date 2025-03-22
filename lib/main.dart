@@ -9,6 +9,7 @@ import 'style/styles.dart'; // Файл со стилями текста
 import 'package:provider/provider.dart';
 import 'services/menu_provider.dart';
 import 'services/cart_provider.dart';
+import 'services/auth_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,6 +20,7 @@ void main() {
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => CartProvider()),
         ChangeNotifierProvider(create: (_) => MenuProvider()),
       ],

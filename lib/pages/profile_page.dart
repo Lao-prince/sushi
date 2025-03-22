@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../services/auth_provider.dart';
 import '../style/styles.dart';
+import 'auth_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({Key? key}) : super(key: key);
@@ -109,6 +112,8 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
   }
 
   Widget _buildMyDataCard() {
+    final authProvider = Provider.of<AuthProvider>(context);
+    
     return Container(
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
@@ -126,7 +131,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const SizedBox(), // Placeholder for alignment
+              const SizedBox(),
               IconButton(
                 icon: const Icon(Icons.edit, color: Colors.white),
                 onPressed: () {
@@ -138,14 +143,14 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
           const Center(
             child: CircleAvatar(
               radius: 90,
-              backgroundImage: AssetImage('assets/avatar.png'), // Update with your asset
+              backgroundImage: AssetImage('assets/avatar.png'),
             ),
           ),
           const SizedBox(height: 16),
-          const Center(
+          Center(
             child: Text(
-              'Петр Иванов',
-              style: TextStyle(
+              authProvider.name ?? 'Пользователь',
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 36,
                 fontWeight: FontWeight.bold,
@@ -156,23 +161,27 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildDataBlock('Мои адреса', 'г. Москва, ул. Примерная, д. 1'),
-              _buildDataBlock('Дата рождения', '01.01.1990'),
+              _buildDataBlock('Телефон', authProvider.phoneNumber ?? 'Не указан'),
               _buildDataBlock('E-mail', 'example@mail.ru'),
-              _buildDataBlock('Телефон', '+7 (999) 123-45-67'),
             ],
           ),
           const SizedBox(height: 20),
           Center(
             child: TextButton(
-              onPressed: () {
-                // Logic to delete profile
+              onPressed: () async {
+                await authProvider.logout();
+                if (mounted) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => const AuthPage()),
+                  );
+                }
               },
               style: TextButton.styleFrom(
                 foregroundColor: const Color(0xFFEB8B8D),
                 textStyle: AppTextStyles.Subtitle.copyWith(color: const Color(0xFFEB8B8D)),
               ),
-              child: const Text('Удалить профиль'),
+              child: const Text('Выйти'),
             ),
           ),
         ],
@@ -198,79 +207,86 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
-    double screenWidth = MediaQuery.of(context).size.width;
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, child) {
+        if (!authProvider.isAuthenticated) {
+          return const AuthPage();
+        }
 
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            const Center(
-              child: Text('Профиль', style: AppTextStyles.H1),
-            ),
-            const SizedBox(height: 20),
-            Stack(
+        double screenWidth = MediaQuery.of(context).size.width;
+
+        return Scaffold(
+          body: SafeArea(
+            child: Column(
               children: [
-                Positioned(
-                  bottom: 0,
-                  child: Container(
-                    height: 2,
-                    width: screenWidth,
-                    color: const Color(0xFF4D4D4D),
-                  ),
+                const SizedBox(height: 20),
+                const Center(
+                  child: Text('Профиль', style: AppTextStyles.H1),
                 ),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  controller: _scrollController,
-                  child: Row(
-                    children: menuItems.map((item) {
-                      int index = menuItems.indexOf(item);
-                      return GestureDetector(
-                        onTap: () => _onItemTap(index),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 15),
-                          child: Column(
-                            children: [
-                              Text(
-                                item,
-                                style: AppTextStyles.H2.copyWith(
-                                  color: index == activeIndex
-                                      ? const Color(0xFFD1930D)
-                                      : const Color(0xFF4D4D4D),
-                                  fontWeight: index == activeIndex
-                                      ? FontWeight.normal
-                                      : FontWeight.normal,
-                                ),
+                const SizedBox(height: 20),
+                Stack(
+                  children: [
+                    Positioned(
+                      bottom: 0,
+                      child: Container(
+                        height: 2,
+                        width: screenWidth,
+                        color: const Color(0xFF4D4D4D),
+                      ),
+                    ),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      controller: _scrollController,
+                      child: Row(
+                        children: menuItems.map((item) {
+                          int index = menuItems.indexOf(item);
+                          return GestureDetector(
+                            onTap: () => _onItemTap(index),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 15),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    item,
+                                    style: AppTextStyles.H2.copyWith(
+                                      color: index == activeIndex
+                                          ? const Color(0xFFD1930D)
+                                          : const Color(0xFF4D4D4D),
+                                      fontWeight: index == activeIndex
+                                          ? FontWeight.normal
+                                          : FontWeight.normal,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  AnimatedContainer(
+                                    duration: const Duration(milliseconds: 300),
+                                    height: index == activeIndex ? 2 : 0,
+                                    width: item.length * 12.0,
+                                    color: const Color(0xFFD1930D),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 10),
-                              AnimatedContainer(
-                                duration: const Duration(milliseconds: 300),
-                                height: index == activeIndex ? 2 : 0,
-                                width: item.length * 12.0,
-                                color: const Color(0xFFD1930D),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    child: getActiveContent(),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 15),
-                child: getActiveContent(),
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
