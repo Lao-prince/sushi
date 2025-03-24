@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import 'services/menu_provider.dart';
 import 'services/cart_provider.dart';
 import 'services/auth_provider.dart';
+import 'services/http_client.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,10 +18,16 @@ void main() {
   // Настраиваем размер кэша изображений
   PaintingBinding.instance.imageCache.maximumSize = 200;
   
+  // Создаем AuthProvider
+  final authProvider = AuthProvider();
+  
+  // Инициализируем HTTP-клиент
+  HttpClient().initialize(authProvider);
+  
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider.value(value: authProvider),
         ChangeNotifierProvider(create: (_) => CartProvider()),
         ChangeNotifierProvider(create: (_) => MenuProvider()),
       ],
@@ -65,14 +72,25 @@ class MyApp extends StatelessWidget {
 }
 
 class MainPage extends StatefulWidget {
-  const MainPage({super.key});
+  final int initialIndex;
+  
+  const MainPage({
+    Key? key,
+    this.initialIndex = 0,
+  }) : super(key: key);
 
   @override
   _MainPageState createState() => _MainPageState();
 }
 
 class _MainPageState extends State<MainPage> {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialIndex;
+  }
 
   final List<Widget> _pages = [
     MenuPage(), // Убедитесь, что MenuPage определен корректно

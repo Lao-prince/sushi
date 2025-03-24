@@ -66,33 +66,158 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
   }
 
   Widget _buildChangePasswordForm() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildLabeledInputField('Старый пароль', 'Введите старый пароль', obscureText: true),
-        _buildLabeledInputField('Новый пароль', 'Введите новый пароль', obscureText: true),
-        _buildLabeledInputField('Подтверждение пароля', 'Подтвердите новый пароль', obscureText: true),
-        const SizedBox(height: 20),
-        ElevatedButton(
-          onPressed: () {
-            // Logic to handle password change
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFD1930D),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(25),
-            ),
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.max,
+    final _oldPasswordController = TextEditingController();
+    final _newPasswordController = TextEditingController();
+    final _confirmPasswordController = TextEditingController();
+    final _formKey = GlobalKey<FormState>();
+    bool _isLoading = false;
+
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Сохранить изменения', style: AppTextStyles.Subtitle.copyWith(color: Colors.white)),
+              TextFormField(
+                controller: _oldPasswordController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: 'Старый пароль',
+                  labelStyle: AppTextStyles.Body,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  filled: true,
+                  fillColor: const Color(0xFF1C2D45),
+                ),
+                style: AppTextStyles.Body,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Введите старый пароль';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _newPasswordController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: 'Новый пароль',
+                  labelStyle: AppTextStyles.Body,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  filled: true,
+                  fillColor: const Color(0xFF1C2D45),
+                ),
+                style: AppTextStyles.Body,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Введите новый пароль';
+                  }
+                  if (value.length < 6) {
+                    return 'Пароль должен быть не менее 6 символов';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _confirmPasswordController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: 'Подтверждение пароля',
+                  labelStyle: AppTextStyles.Body,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  filled: true,
+                  fillColor: const Color(0xFF1C2D45),
+                ),
+                style: AppTextStyles.Body,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Подтвердите новый пароль';
+                  }
+                  if (value != _newPasswordController.text) {
+                    return 'Пароли не совпадают';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isLoading
+                      ? null
+                      : () async {
+                          if (_formKey.currentState!.validate()) {
+                            setState(() => _isLoading = true);
+
+                            final authProvider =
+                                Provider.of<AuthProvider>(context, listen: false);
+                            final success = await authProvider.changePassword(
+                              _oldPasswordController.text,
+                              _newPasswordController.text,
+                            );
+
+                            setState(() => _isLoading = false);
+
+                            if (!mounted) return;
+
+                            if (success) {
+                              // Очищаем поля
+                              _oldPasswordController.clear();
+                              _newPasswordController.clear();
+                              _confirmPasswordController.clear();
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Пароль успешно изменен'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Ошибка при смене пароля. Проверьте правильность старого пароля',
+                                  ),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFD1930D),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : Text(
+                          'Сменить пароль',
+                          style: AppTextStyles.Body.copyWith(color: Colors.white),
+                        ),
+                ),
+              ),
             ],
           ),
-        ),
-      ],
+        );
+      },
     );
   }
 
@@ -143,7 +268,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
           const Center(
             child: CircleAvatar(
               radius: 90,
-              backgroundImage: AssetImage('assets/avatar.png'),
+              backgroundImage: AssetImage('assets/images/avatar.png'),
             ),
           ),
           const SizedBox(height: 16),
@@ -166,6 +291,74 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
             ],
           ),
           const SizedBox(height: 20),
+          TextButton(
+            onPressed: () async {
+              // Показываем диалог подтверждения
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  backgroundColor: const Color(0xFF1C2D45),
+                  title: const Text(
+                    'Удаление аккаунта',
+                    style: AppTextStyles.H2,
+                  ),
+                  content: const Text(
+                    'Вы уверены, что хотите удалить свой аккаунт? Это действие нельзя отменить.',
+                    style: AppTextStyles.Body,
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: Text(
+                        'Отмена',
+                        style: AppTextStyles.Body.copyWith(
+                          color: const Color(0xFFD1930D),
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: Text(
+                        'Удалить',
+                        style: AppTextStyles.Body.copyWith(
+                          color: const Color(0xFFEB8B8D),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirmed == true) {
+                final success = await authProvider.deleteAccount();
+                if (success) {
+                  if (mounted) {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => const AuthPage()),
+                    );
+                  }
+                } else {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Ошибка при удалении аккаунта'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              }
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFEB8B8D),
+              textStyle: AppTextStyles.Subtitle.copyWith(
+                color: const Color(0xFFEB8B8D),
+              ),
+            ),
+            child: const Text('Удалить аккаунт'),
+          ),
+          const SizedBox(height: 12),
           Center(
             child: TextButton(
               onPressed: () async {
@@ -179,7 +372,9 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
               },
               style: TextButton.styleFrom(
                 foregroundColor: const Color(0xFFEB8B8D),
-                textStyle: AppTextStyles.Subtitle.copyWith(color: const Color(0xFFEB8B8D)),
+                textStyle: AppTextStyles.Subtitle.copyWith(
+                  color: const Color(0xFFEB8B8D),
+                ),
               ),
               child: const Text('Выйти'),
             ),
