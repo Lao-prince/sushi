@@ -12,6 +12,11 @@ class Menu {
           .toList(),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'category': category.toJson(),
+    'products': products.map((p) => p.toJson()).toList(),
+  };
 }
 
 class Category {
@@ -26,6 +31,11 @@ class Category {
       name: json['name'],
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+  };
 }
 
 class Product {
@@ -34,7 +44,7 @@ class Product {
   final List<String> imageLinks;
   final String description;
   final Category category;
-  final List<Price> prices; // Ensure the prices field is defined here
+  final List<Price> prices;
 
   Product({
     required this.id,
@@ -44,6 +54,7 @@ class Product {
     required this.category,
     required this.prices,
   });
+
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
       id: json['id'],
@@ -53,23 +64,37 @@ class Product {
       category: Category.fromJson(json['category']),
       prices: (json['prices'] as List)
           .map((priceJson) => Price.fromJson(priceJson))
-          .toList(), // Correctly mapping the prices
+          .toList(),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'imageLinks': imageLinks,
+    'description': description,
+    'category': category.toJson(),
+    'prices': prices.map((p) => p.toJson()).toList(),
+  };
 }
 
 class Price {
   final Size size;
-  final int price; // The price is stored as an integer
+  final int price;
 
   Price({required this.size, required this.price});
 
   factory Price.fromJson(Map<String, dynamic> json) {
     return Price(
       size: Size.fromJson(json['size']),
-      price: json['price'].toDouble().round(), // Ensure rounding the price to an integer
+      price: json['price'].toDouble().round(),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'size': size.toJson(),
+    'price': price,
+  };
 }
 
 class Size {
@@ -86,4 +111,10 @@ class Size {
       isDefault: json['isDefault'],
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'isDefault': isDefault,
+  };
 }

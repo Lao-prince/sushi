@@ -12,11 +12,14 @@ import 'services/cart_provider.dart';
 import 'services/auth_provider.dart';
 import 'services/http_client.dart';
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Настраиваем размер кэша изображений
-  PaintingBinding.instance.imageCache.maximumSize = 200;
+  PaintingBinding.instance.imageCache.maximumSize = 100;
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 50 * 1024 * 1024;
   
   // Создаем AuthProvider
   final authProvider = AuthProvider();
@@ -42,6 +45,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'Sushi Menu',
       theme: ThemeData(
         fontFamily: 'HattoriHanzo', // Основной шрифт

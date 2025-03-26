@@ -2,9 +2,40 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/cart_provider.dart';
 import '../style/styles.dart';
-import '../widgets/cart_card.dart';
 import 'cart_checkout_page.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../models/cart_model.dart';
+import '../widgets/cart_card.dart';
 
+class DottedLinePainter extends CustomPainter {
+  final Color color;
+
+  DottedLinePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.5;
+
+    const dashWidth = 4.0;
+    const dashSpace = 4.0;
+    double startX = 0;
+    final double y = size.height / 2;
+
+    while (startX < size.width) {
+      canvas.drawLine(
+        Offset(startX, y),
+        Offset(startX + dashWidth, y),
+        paint,
+      );
+      startX += dashWidth + dashSpace;
+    }
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
+}
 
 class CartPage extends StatelessWidget {
   const CartPage({Key? key}) : super(key: key);
@@ -19,83 +50,57 @@ class CartPage extends StatelessWidget {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    const double circleRadius = 15; // Circle radius
-    var cartProvider = Provider.of<CartProvider>(context);
-    var cartItems = cartProvider.items;
-
-
-
-    return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView( // Obsolete SingleChildScrollView for scrolling
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
-              // Page title
-              Text(
-                'Корзина',
-                style: AppTextStyles.H1.copyWith(color: Colors.white),
+  Widget _stepIndicator(String number, String label, bool isActive) {
+    return Column(
+      children: [
+        Container(
+          width: 30,
+          height: 30,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: isActive ? const Color(0xFFD1930D) : const Color(0xFF848484),
+              width: 1.5,
+            ),
+          ),
+          child: Center(
+            child: Text(
+              number,
+              style: TextStyle(
+                color: isActive ? const Color(0xFFD1930D) : const Color(0xFF848484),
+                fontWeight: FontWeight.bold,
               ),
-              const SizedBox(height: 20),
-              // Steps alignment
-              Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    _stepIndicator('1', 'Мой заказ', true),
-                    _dottedLineBetweenCircles(isActive: true, circleRadius: circleRadius),
-                    _stepIndicator('2', 'Оформление', false),
-                    _dottedLineBetweenCircles(isActive: false, circleRadius: circleRadius),
-                    _stepIndicator('3', 'Заказ принят', false),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-              // Top block with items
-              cartItems.isEmpty
-                  ? Padding(
-                padding: const EdgeInsets.only(top: 100),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset(
-                      'assets/images/sushi.png',
-                      width: 150,
-                      height: 150,
-                      fit: BoxFit.contain,
-                    ),
-                    Center(
-                      child: Text(
-                        'Ваша корзина пуста',
-                        style: AppTextStyles.H2.copyWith(color: Color(0xFF555555)),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ],
-                ),
-              )
-                  : _topCartSummary(cartProvider),
-              const SizedBox(height: 20),
-              if (cartItems.isNotEmpty) _bottomOrderDetails(context),
-            ],
+            ),
           ),
         ),
-      ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: AppTextStyles.Caption.copyWith(
+            color: isActive ? const Color(0xFFD1930D) : const Color(0xFF848484),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _dottedLineBetweenCircles({required bool isActive, required double circleRadius}) {
+    return CustomPaint(
+      size: const Size(50, 2),
+      painter: DottedLinePainter(color: isActive ? const Color(0xFFD1930D) : const Color(0xFF848484)),
     );
   }
 
   Widget _topCartSummary(CartProvider cartProvider) {
-    var cartItems = cartProvider.items.values.toList(); // Получаем список товаров
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 15),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 25, horizontal: 10),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(15),
+            topRight: Radius.circular(15),
+          ),
           border: Border.all(color: const Color(0xFFD1930D), width: 1.5),
           gradient: const LinearGradient(
             colors: [Color(0xFF3A435B), Color(0xFF0A0A0A)],
@@ -110,30 +115,43 @@ class CartPage extends StatelessWidget {
               'Заказ',
               style: AppTextStyles.H2.copyWith(color: Colors.white),
             ),
-            const SizedBox(height: 15),
-            ListView.builder(
+            const SizedBox(height: 20),
+            ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: cartItems.length,
+              itemCount: cartProvider.items.length,
+              separatorBuilder: (context, index) => Column(
+                children: [
+                  const SizedBox(height: 12),
+                  const Divider(color: Color(0xFF4D4D4D), thickness: 1),
+                  const SizedBox(height: 12),
+                ],
+              ),
               itemBuilder: (context, index) {
-                var item = cartItems[index];
-                return Column(
-                  children: [
-                    CartCard(
-                      title: item['title'],
-                      subtitle: getPortionText(int.tryParse(item['selectedOption'].toString()) ?? 1),
-                      price: '${(item['price'] * item['quantity']).toStringAsFixed(0)} \u20BD',
-                      imagePath: item['imageUrl'],
-                      quantity: item['quantity'],
-                      onRemove: () => cartProvider.updateQuantity(
-                          item['title'], item['selectedOption'], item['quantity'] - 1),
-                      onAdd: () => cartProvider.updateQuantity(
-                          item['title'], item['selectedOption'], item['quantity'] + 1),
-                      onDelete: () => cartProvider.removeItem(item['title'], item['selectedOption']),
-                    ),
-                    if (index < cartItems.length - 1)
-                      const Divider(color: Color(0xFF4D4D4D), thickness: 1),
-                  ],
+                final item = cartProvider.items[index];
+                // Получаем текст с порциями
+                String portionText = '';
+                if (item.sizeName != null) {
+                  final portions = int.tryParse(item.sizeName!) ?? 0;
+                  if (portions > 0) {
+                    if (portions % 10 == 1 && portions % 100 != 11) {
+                      portionText = '$portions порция';
+                    } else if ([2, 3, 4].contains(portions % 10) && ![12, 13, 14].contains(portions % 100)) {
+                      portionText = '$portions порции';
+                    } else {
+                      portionText = '$portions порций';
+                    }
+                  }
+                }
+                return CartCard(
+                  title: item.productName ?? 'Название недоступно',
+                  subtitle: portionText,
+                  price: '${item.price} ₽',
+                  imagePath: item.productImage ?? '',
+                  quantity: item.amount,
+                  onRemove: () => cartProvider.updateQuantity(item.uuid, item.amount - 1),
+                  onAdd: () => cartProvider.updateQuantity(item.uuid, item.amount + 1),
+                  onDelete: () => cartProvider.removeItem(item.uuid),
                 );
               },
             ),
@@ -142,7 +160,6 @@ class CartPage extends StatelessWidget {
       ),
     );
   }
-
 
   Widget _bottomOrderDetails(BuildContext context) {
     var cartProvider = Provider.of<CartProvider>(context);
@@ -228,79 +245,69 @@ class CartPage extends StatelessWidget {
     );
   }
 
+  @override
+  Widget build(BuildContext context) {
+    const double circleRadius = 15;
+    var cartProvider = Provider.of<CartProvider>(context);
+    var cartItems = cartProvider.items;
 
-  Widget _stepIndicator(String step, String label, bool isActive) {
-    return Column(
-      children: [
-        Container(
-          width: 30,
-          height: 30,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: isActive ? const Color(0xFFD1930D) : const Color(0xFF848484),
-              width: 1.5,
-            ),
-          ),
-          child: Center(
-            child: Text(
-              step,
-              style: TextStyle(
-                color: isActive ? const Color(0xFFD1930D) : const Color(0xFF848484),
-                fontWeight: FontWeight.bold,
+    return Scaffold(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
+              // Page title
+              Text(
+                'Корзина',
+                style: AppTextStyles.H1.copyWith(color: Colors.white),
               ),
-            ),
+              const SizedBox(height: 20),
+              // Steps alignment
+              Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    _stepIndicator('1', 'Мой заказ', true),
+                    _dottedLineBetweenCircles(isActive: true, circleRadius: circleRadius),
+                    _stepIndicator('2', 'Оформление', false),
+                    _dottedLineBetweenCircles(isActive: false, circleRadius: circleRadius),
+                    _stepIndicator('3', 'Заказ принят', false),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Top block with items
+              cartItems.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.only(top: 100),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Image.asset(
+                            'assets/images/sushi.png',
+                            width: 150,
+                            height: 150,
+                            fit: BoxFit.contain,
+                          ),
+                          Center(
+                            child: Text(
+                              'Ваша корзина пуста',
+                              style: AppTextStyles.H2.copyWith(color: const Color(0xFF555555)),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : _topCartSummary(cartProvider),
+              const SizedBox(height: 20),
+              if (cartItems.isNotEmpty) _bottomOrderDetails(context),
+            ],
           ),
         ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          style: AppTextStyles.Caption.copyWith(
-            color: isActive ? const Color(0xFFD1930D) : const Color(0xFF848484),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _dottedLineBetweenCircles({required bool isActive, required double circleRadius}) {
-    return CustomPaint(
-      size: Size(circleRadius * 3, circleRadius),
-      painter: DottedLinePainter(
-        color: isActive ? const Color(0xFFD1930D) : const Color(0xFF848484),
       ),
     );
-  }
-}
-
-
-class DottedLinePainter extends CustomPainter {
-  final Color color;
-
-  DottedLinePainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const double dashWidth = 10;
-    const double dashSpace = 4;
-    double startX = 0;
-
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1.5;
-
-    while (startX < size.width) {
-      canvas.drawLine(
-        Offset(startX, 0),
-        Offset(startX + dashWidth, 0),
-        paint,
-      );
-      startX += dashWidth + dashSpace;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) {
-    return false;
   }
 }

@@ -154,11 +154,11 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
               _buildOrderSteps(),
               const SizedBox(height: 40),
 
-              // Личные данные
+              // Личные данные с измененным порядком полей
               _buildSection('Личные данные', [
                 _buildLabeledInputField('Имя', 'Иван'),
-                _buildLabeledInputField('E-mail', 'example@mail.ru'),
                 _buildLabeledInputField('Телефон', '+7 (___) ___-__-__'),
+                _buildLabeledInputField('E-mail', 'example@mail.ru'),
               ]),
 
               const SizedBox(height: 32),
@@ -172,12 +172,13 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Поле для адреса
-                    _buildLabeledInputField(
-                      'Адрес для доставки',
-                      'Введите полный адрес...',
-                      maxLines: 5,
-                    ),
+                    // Новые поля для адреса
+                    _buildLabeledInputField('Город', 'Введите город'),
+                    _buildLabeledInputField('Улица', 'Введите улицу'),
+                    _buildLabeledInputField('Дом', 'Введите номер дома'),
+                    _buildLabeledInputField('Подъезд', 'Введите номер подъезда'),
+                    _buildLabeledInputField('Этаж', 'Введите этаж'),
+                    _buildLabeledInputField('Домофон', 'Введите код домофона'),
                     const SizedBox(height: 16),
 
                     // Поле для времени доставки
@@ -203,7 +204,7 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
               const SizedBox(height: 20),
 
               // Кнопки
-              _buildButtons(),
+              _buildBottomButtons(context),
               const SizedBox(height: 20),
             ],
           ),
@@ -396,69 +397,60 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
     );
   }
 
-  Widget _buildButtons() {
+  Widget _buildBottomButtons(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // Кнопка "Вернуться"
-        GestureDetector(
-          onTap: () {
-            Navigator.pop(context);
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 28),
-            decoration: BoxDecoration(
-              color: const Color(0xFF4D4D4D),
-              borderRadius: BorderRadius.circular(25),
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            icon: const Icon(
+              Icons.arrow_back,
+              color: Colors.white,
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.arrow_back_ios_new,
-                  color: Colors.white,
-                  size: 18,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Вернуться',
-                  style: AppTextStyles.Subtitle.copyWith(color: Colors.white),
-                ),
-              ],
+            label: const Text(
+              'Вернуться',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.white,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.grey[800],
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(25),
+              ),
             ),
           ),
         ),
-
-        // Кнопка "Оформить заказ"
-        GestureDetector(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const CartConfirmPage()),
-            );
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 48),
-            decoration: BoxDecoration(
-              color: const Color(0xFFD1930D),
-              borderRadius: BorderRadius.circular(25),
+        const SizedBox(width: 10),
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CartConfirmPage()),
+              );
+            },
+            icon: const Text(
+              'Оформить заказ',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.white,
+              ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(
-                  'Оформить заказ',
-                  style: AppTextStyles.Subtitle.copyWith(color: Colors.white),
-                ),
-                const SizedBox(width: 8),
-                const Icon(
-                  Icons.arrow_forward_ios,
-                  color: Colors.white,
-                  size: 18,
-                ),
-              ],
+            label: const Icon(
+              Icons.arrow_forward,
+              color: Colors.white,
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFD1930D),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(25),
+              ),
             ),
           ),
         ),
