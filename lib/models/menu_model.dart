@@ -27,8 +27,8 @@ class Category {
 
   factory Category.fromJson(Map<String, dynamic> json) {
     return Category(
-      id: json['id'],
-      name: json['name'],
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
     );
   }
 
@@ -57,14 +57,12 @@ class Product {
 
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
-      id: json['id'],
-      name: json['name'],
-      imageLinks: List<String>.from(json['imageLinks']),
-      description: json['description'],
-      category: Category.fromJson(json['category']),
-      prices: (json['prices'] as List)
-          .map((priceJson) => Price.fromJson(priceJson))
-          .toList(),
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      imageLinks: (json['imageLinks'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      description: json['description']?.toString() ?? '',
+      category: Category.fromJson(json['category'] ?? {}),
+      prices: (json['prices'] as List<dynamic>?)?.map((priceJson) => Price.fromJson(priceJson)).toList() ?? [],
     );
   }
 
@@ -86,8 +84,8 @@ class Price {
 
   factory Price.fromJson(Map<String, dynamic> json) {
     return Price(
-      size: Size.fromJson(json['size']),
-      price: json['price'].toDouble().round(),
+      size: Size.fromJson(json['size'] ?? {}),
+      price: (json['price'] is num) ? json['price'].toInt() : 0,
     );
   }
 
@@ -106,9 +104,9 @@ class Size {
 
   factory Size.fromJson(Map<String, dynamic> json) {
     return Size(
-      id: json['id'],
-      name: json['name'],
-      isDefault: json['isDefault'],
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      isDefault: json['isDefault'] as bool? ?? false,
     );
   }
 

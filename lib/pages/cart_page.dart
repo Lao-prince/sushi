@@ -3,8 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/cart_provider.dart';
 import '../style/styles.dart';
 import 'cart_checkout_page.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import '../models/cart_model.dart';
+
 import '../widgets/cart_card.dart';
 
 class DottedLinePainter extends CustomPainter {

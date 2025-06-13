@@ -218,10 +218,12 @@ class _MenuPageState extends State<MenuPage> {
                                                 imageUrl: product.imageLinks.isNotEmpty ? product.imageLinks[0] : '',
                                                 title: product.name,
                                                 description: product.description,
-                                                price: product.prices
-                                                    .firstWhere((price) => price.size.isDefault, orElse: () => product.prices[0])
-                                                    .price
-                                                    .toString(),
+                                                price: product.prices.isNotEmpty 
+                                                    ? product.prices.firstWhere(
+                                                        (price) => price.size.isDefault,
+                                                        orElse: () => product.prices[0]
+                                                      ).price.toString()
+                                                    : '0',
                                                 sizes: sizes,
                                               ),
                                             );

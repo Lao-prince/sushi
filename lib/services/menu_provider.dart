@@ -57,9 +57,9 @@ class MenuProvider extends ChangeNotifier {
               name: item['category']['name'],
             );
 
+            // Проверяем, существует ли уже такая категория
             if (!_categories.any((c) => c.id == category.id)) {
-              // Добавляем новые категории в начало списка
-              _categories.insert(0, category);
+              _categories.add(category);
             }
 
             List<Product> products = (item['products'] as List<dynamic>)

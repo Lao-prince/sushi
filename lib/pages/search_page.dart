@@ -25,12 +25,13 @@ class _SearchPageState extends State<SearchPage> {
   List<Product> _searchProducts(MenuProvider menuProvider) {
     if (_searchQuery.isEmpty) return [];
 
-    final query = _searchQuery.toLowerCase();
+    final query = _searchQuery.toLowerCase().trim();
     final allProducts = menuProvider.categorizedProducts.values
         .expand((products) => products)
         .where((product) =>
-            product.name.toLowerCase().contains(query) ||
-            product.description.toLowerCase().contains(query))
+            (product.name.toLowerCase().contains(query) ||
+            product.description.toLowerCase().contains(query)) &&
+            product.prices.isNotEmpty)
         .toList();
 
     return allProducts;
@@ -42,43 +43,43 @@ class _SearchPageState extends State<SearchPage> {
       body: SafeArea(
         child: Column(
           children: [
+            const SizedBox(height: 20),
+            Center(
+              child: Text(
+                'Поиск',
+                style: AppTextStyles.H1.copyWith(color: Colors.white),
+              ),
+            ),
+            const SizedBox(height: 20),
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16.0),
               child: TextField(
                 controller: _searchController,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'Поиск',
-                  hintStyle: const TextStyle(color: Colors.white54),
-                  prefixIcon: const Icon(Icons.search, color: Colors.white54),
-                  suffixIcon: _searchQuery.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear, color: Colors.white54),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() {
-                              _searchQuery = '';
-                            });
-                          },
-                        )
-                      : null,
-                  filled: true,
-                  fillColor: const Color(0xFF2A2A2A),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
                 onChanged: (value) {
                   setState(() {
                     _searchQuery = value;
                   });
                 },
+                decoration: InputDecoration(
+                  hintText: 'Поиск...',
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  filled: true,
+                  fillColor: const Color(0xFF1C2D45),
+                ),
+                style: const TextStyle(color: Colors.white),
               ),
             ),
+            const SizedBox(height: 20),
             Expanded(
               child: Consumer<MenuProvider>(
                 builder: (context, menuProvider, child) {
+                  if (menuProvider.isLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
                   final searchResults = _searchProducts(menuProvider);
 
                   if (_searchQuery.isEmpty) {
@@ -99,38 +100,28 @@ class _SearchPageState extends State<SearchPage> {
                     );
                   }
 
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        double cardWidth = (constraints.maxWidth - 10) / 2;
-                        return Wrap(
-                          spacing: 10,
-                          runSpacing: 10,
-                          children: searchResults.map((product) {
-                            List<Map<String, String>> sizes = product.prices.map((price) => {
-                              'id': price.size.id,
-                              'name': price.size.name,
-                            }).toList();
-
-                            return SizedBox(
-                              width: cardWidth,
-                              child: ProductCard(
-                                id: product.id,
-                                imageUrl: product.imageLinks.isNotEmpty ? product.imageLinks[0] : '',
-                                title: product.name,
-                                description: product.description,
-                                price: product.prices
-                                    .firstWhere((price) => price.size.isDefault, orElse: () => product.prices[0])
-                                    .price
-                                    .toString(),
-                                sizes: sizes,
-                              ),
-                            );
-                          }).toList(),
-                        );
-                      },
-                    ),
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: searchResults.length,
+                    itemBuilder: (context, index) {
+                      final product = searchResults[index];
+                      return ProductCard(
+                        id: product.id,
+                        imageUrl: product.imageLinks.isNotEmpty ? product.imageLinks[0] : '',
+                        title: product.name,
+                        description: product.description,
+                        price: product.prices.isNotEmpty 
+                            ? product.prices.firstWhere(
+                                (price) => price.size.isDefault,
+                                orElse: () => product.prices[0]
+                              ).price.toString()
+                            : '0',
+                        sizes: product.prices.map((price) => {
+                          'id': price.size.id,
+                          'name': price.size.name,
+                        }).toList(),
+                      );
+                    },
                   );
                 },
               ),
