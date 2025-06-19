@@ -3,8 +3,9 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/cart_model.dart';
 import '../models/menu_model.dart';
+import 'package:flutter/foundation.dart';
 
-class CartProvider extends ChangeNotifier {
+class CartProvider with ChangeNotifier {
   Cart? _cart;
   bool _isLoading = false;
   String? _sessionCookie;
@@ -16,7 +17,7 @@ class CartProvider extends ChangeNotifier {
   List<CartItem> get items => _cart?.items ?? [];
   double get totalPrice => _cart?.totalPrice ?? 0;
 
-  // Получение корзины с сервера
+  // Получение корзины
   Future<void> fetchCart() async {
     _isLoading = true;
     notifyListeners();
@@ -59,6 +60,12 @@ class CartProvider extends ChangeNotifier {
         if (cartData != null) {
           final data = json.decode(cartData);
           if (data['Items'] != null) {
+            // Фильтруем товары с нулевым количеством
+            data['Items'] = (data['Items'] as List)
+                .where((item) => (item['amount'] as num) > 0)
+                .toList();
+            
+            // Добавляем данные о товарах из _itemsData
             for (var item in data['Items']) {
               final itemKey = item['productId'] + item['productSizeId'];
               if (_itemsData.containsKey(itemKey)) {
@@ -85,7 +92,7 @@ class CartProvider extends ChangeNotifier {
   // Добавление товара в корзину
   Future<void> addToCart(Product product, String sizeId, int amount) async {
     try {
-      if (product.id.isEmpty || sizeId.isEmpty || amount <= 0) {
+      if (product.id.isEmpty || amount <= 0) {
         print('Некорректные данные для добавления в корзину:');
         print('productId: ${product.id}');
         print('sizeId: $sizeId');
@@ -102,28 +109,42 @@ class CartProvider extends ChangeNotifier {
         headers['Cookie'] = _sessionCookie!;
       }
 
+      // Для товаров без порций используем null как productSizeId
+      final effectiveSizeId = sizeId.isEmpty ? null : sizeId;
+
+      // Получаем размер и формируем название
       final size = product.prices.firstWhere(
         (price) => price.size.id == sizeId,
         orElse: () => product.prices.first,
       );
 
-      // Сохраняем данные о товаре сразу при добавлении
-      final productImage = product.imageLinks.isNotEmpty ? product.imageLinks[0] : '';
-      _itemsData[product.id + sizeId] = {
+      // Формируем название размера как в меню
+      String sizeName = size.size.mapped_name ?? size.size.name;
+      // Для товаров без порций или с количеством 0 не добавляем "(0 шт.)"
+      if (size.count > 1) {
+        sizeName += ' (${size.count} шт.)';
+      }
+
+      // Сохраняем данные о товаре
+      final itemKey = product.id + (effectiveSizeId ?? '');
+      _itemsData[itemKey] = {
         'productName': product.name,
-        'productImage': productImage,
-        'sizeName': size.size.name,
+        'productImage': product.imageLinks.isNotEmpty ? product.imageLinks[0] : '',
+        'sizeName': sizeName,
       };
 
       final Map<String, dynamic> requestBody = {
         'productId': product.id,
-        'productSizeId': sizeId,
+        'productSizeId': effectiveSizeId,
         'amount': amount,
         'comment': '',
         'productName': product.name,
-        'productImage': productImage,
-        'sizeName': size.size.name,
+        'productImage': product.imageLinks.isNotEmpty ? product.imageLinks[0] : '',
+        'sizeName': sizeName,
       };
+
+      print('Отправляем запрос на добавление в корзину:');
+      print('requestBody: $requestBody');
 
       final response = await http.post(
         Uri.parse('http://89.223.122.180:10000/api/cart/add'),
@@ -135,12 +156,22 @@ class CartProvider extends ChangeNotifier {
         _sessionCookie = response.headers['set-cookie']!.split(';')[0];
       }
 
+      print('Статус ответа: ${response.statusCode}');
+      print('Тело ответа: ${response.body}');
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        print('Получен ответ от сервера: $data');
+        
         if (data['Items'] != null) {
-          // Обновляем данные для всех товаров в корзине
+          // Фильтруем товары с нулевым количеством
+          data['Items'] = (data['Items'] as List)
+              .where((item) => (item['amount'] as num) > 0)
+              .toList();
+          
+          // Восстанавливаем данные о товарах
           for (var item in data['Items']) {
-            final itemKey = item['productId'] + item['productSizeId'];
+            final itemKey = item['productId'] + (item['productSizeId'] ?? '');
             if (_itemsData.containsKey(itemKey)) {
               item['productName'] = _itemsData[itemKey]!['productName'];
               item['productImage'] = _itemsData[itemKey]!['productImage'];
@@ -150,39 +181,57 @@ class CartProvider extends ChangeNotifier {
           _cart = Cart.fromJson(data);
           notifyListeners();
         }
+      } else {
+        print('Ошибка при добавлении в корзину. Статус: ${response.statusCode}');
+        print('Тело ответа: ${response.body}');
+        throw Exception('Ошибка при добавлении в корзину: ${response.body}');
       }
     } catch (e) {
-      print('Ошибка при добавлении товара: $e');
+      print('Ошибка при добавлении в корзину: $e');
+      rethrow;
     }
   }
 
-  // Получение количества товара в корзине
-  int getItemCount(String productId, String sizeId) {
-    if (_cart == null) return 0;
-    
-    return _cart!.items
-        .where((item) => 
-            item.productId == productId && 
-            item.productSizeId == sizeId)
-        .fold(0, (sum, item) => sum + item.amount);
-  }
-
-  // Обновление количества товара
-  Future<void> updateQuantity(String uuid, int newAmount) async {
+  // Обновление количества товара в корзине
+  Future<void> updateQuantity(String productId, String? sizeId, int quantity) async {
     try {
-      if (newAmount <= 0) {
-        await removeItem(uuid);
-        return;
+      if (quantity < 0) {
+        throw Exception('Количество не может быть отрицательным');
       }
 
-      // Находим текущий товар в корзине
-      final currentItem = _cart?.items.firstWhere((item) => item.uuid == uuid);
-      if (currentItem == null) return;
+      if (_cart == null) {
+        throw Exception('Корзина не инициализирована');
+      }
 
-      print('Обновляем количество товара:');
-      print('UUID: $uuid');
-      print('Текущее количество: ${currentItem.amount}');
-      print('Новое количество: $newAmount');
+      // Для товаров без порций используем null как productSizeId
+      final effectiveSizeId = sizeId?.isEmpty == true ? null : sizeId;
+
+      // Находим товар в корзине
+      final currentItem = _cart!.items.firstWhere(
+        (item) => item.productId == productId && 
+                  ((effectiveSizeId == null && item.productSizeId == null) || 
+                   (effectiveSizeId != null && item.productSizeId == effectiveSizeId)),
+        orElse: () {
+          print('Товар не найден в корзине:');
+          print('productId: $productId');
+          print('sizeId: $effectiveSizeId');
+          print('Текущие товары в корзине:');
+          for (var item in _cart!.items) {
+            print('${item.productId} - ${item.productSizeId}');
+          }
+          throw Exception('Товар не найден в корзине');
+        },
+      );
+
+      // Сохраняем данные о товаре перед обновлением
+      final itemKey = productId + (effectiveSizeId ?? '');
+      if (!_itemsData.containsKey(itemKey)) {
+        _itemsData[itemKey] = {
+          'productName': currentItem.productName,
+          'productImage': currentItem.productImage,
+          'sizeName': currentItem.sizeName,
+        };
+      }
 
       final headers = {
         'Content-Type': 'application/json',
@@ -194,23 +243,17 @@ class CartProvider extends ChangeNotifier {
       }
 
       // Определяем, увеличиваем или уменьшаем количество
-      final isIncreasing = newAmount > currentItem.amount;
+      final isIncreasing = quantity > currentItem.amount;
+      final amountChange = isIncreasing ? 1 : -1;
 
       final Map<String, dynamic> requestBody = {
-        'productId': currentItem.productId,
-        'productSizeId': currentItem.productSizeId,
-        'amount': isIncreasing ? 1 : -1,
-        'comment': currentItem.comment ?? '',
-        'productName': currentItem.productName ?? '',
-        'productImage': currentItem.productImage ?? '',
-        'sizeName': currentItem.sizeName ?? '',
-      };
-
-      // Сохраняем данные о товаре перед обновлением
-      _itemsData[uuid] = {
-        'productName': currentItem.productName ?? '',
-        'productImage': currentItem.productImage ?? '',
-        'sizeName': currentItem.sizeName ?? '',
+        'productId': productId,
+        'productSizeId': effectiveSizeId,
+        'amount': amountChange,
+        'comment': '',
+        'productName': currentItem.productName,
+        'productImage': currentItem.productImage,
+        'sizeName': currentItem.sizeName,
       };
 
       final response = await http.post(
@@ -223,25 +266,63 @@ class CartProvider extends ChangeNotifier {
         _sessionCookie = response.headers['set-cookie']!.split(';')[0];
       }
 
-      print('Код ответа: ${response.statusCode}');
+      print('Статус ответа: ${response.statusCode}');
       print('Тело ответа: ${response.body}');
 
       if (response.statusCode == 200) {
-        await fetchCart();
+        final data = json.decode(response.body);
+        print('Получен ответ от сервера: $data');
+        
+        if (data['Items'] != null) {
+          // Фильтруем товары с нулевым количеством
+          data['Items'] = (data['Items'] as List)
+              .where((item) => (item['amount'] as num) > 0)
+              .toList();
+          
+          // Восстанавливаем данные о товарах
+          for (var item in data['Items']) {
+            final itemKey = item['productId'] + (item['productSizeId'] ?? '');
+            if (_itemsData.containsKey(itemKey)) {
+              item['productName'] = _itemsData[itemKey]!['productName'];
+              item['productImage'] = _itemsData[itemKey]!['productImage'];
+              item['sizeName'] = _itemsData[itemKey]!['sizeName'];
+            }
+          }
+          _cart = Cart.fromJson(data);
+          notifyListeners();
+        }
+      } else if (response.statusCode == 422) {
+        final data = json.decode(response.body);
+        print('Ошибка валидации: $data');
+        throw Exception('Ошибка валидации: ${data['message']}');
       } else {
-        print('Ошибка обновления количества: ${response.statusCode}');
+        print('Неизвестная ошибка. Статус: ${response.statusCode}');
+        print('Тело ответа: ${response.body}');
+        throw Exception('Неизвестная ошибка: ${response.body}');
       }
     } catch (e) {
       print('Ошибка при обновлении количества: $e');
+      rethrow;
     }
   }
 
   // Удаление товара из корзины
-  Future<void> removeItem(String uuid) async {
+  Future<void> removeFromCart(String productId, String? sizeId) async {
     try {
-      // Находим текущий товар в корзине
-      final currentItem = _cart?.items.firstWhere((item) => item.uuid == uuid);
-      if (currentItem == null) return;
+      if (_cart == null || _cart!.items.isEmpty) {
+        print('Корзина пуста');
+        return;
+      }
+
+      // Для товаров без порций используем null как productSizeId
+      final effectiveSizeId = sizeId?.isEmpty == true ? null : sizeId;
+
+      // Находим товар в корзине
+      final currentItem = _cart!.items.firstWhere(
+        (item) => item.productId == productId && 
+                  ((effectiveSizeId == null && item.productSizeId == null) || 
+                   (effectiveSizeId != null && item.productSizeId == effectiveSizeId)),
+      );
 
       final headers = {
         'Content-Type': 'application/json',
@@ -252,16 +333,19 @@ class CartProvider extends ChangeNotifier {
         headers['Cookie'] = _sessionCookie!;
       }
 
-      // Отправляем запрос на добавление с отрицательным количеством
+      // Отправляем запрос на удаление с отрицательным количеством
       final Map<String, dynamic> requestBody = {
-        'productId': currentItem.productId,
-        'productSizeId': currentItem.productSizeId,
+        'productId': productId,
+        'productSizeId': effectiveSizeId,
         'amount': -currentItem.amount, // Отрицательное количество для удаления
-        'comment': currentItem.comment ?? '',
-        'productName': currentItem.productName ?? '',
-        'productImage': currentItem.productImage ?? '',
-        'sizeName': currentItem.sizeName ?? '',
+        'comment': '',
+        'productName': currentItem.productName,
+        'productImage': currentItem.productImage,
+        'sizeName': currentItem.sizeName,
       };
+
+      print('Отправляем запрос на удаление из корзины:');
+      print('requestBody: $requestBody');
 
       final response = await http.post(
         Uri.parse('http://89.223.122.180:10000/api/cart/add'),
@@ -273,26 +357,60 @@ class CartProvider extends ChangeNotifier {
         _sessionCookie = response.headers['set-cookie']!.split(';')[0];
       }
 
-      print('Код ответа при удалении: ${response.statusCode}');
-      print('Тело ответа при удалении: ${response.body}');
+      print('Статус ответа: ${response.statusCode}');
+      print('Тело ответа: ${response.body}');
 
       if (response.statusCode == 200) {
-        // Удаляем данные о товаре
-        _itemsData.remove(uuid);
-        // Обновляем локальное состояние корзины, удаляя товар
-        if (_cart != null) {
-          _cart = Cart(
-            items: _cart!.items.where((item) => item.uuid != uuid).toList(),
-            totalPrice: _cart!.totalPrice - (currentItem.price * currentItem.amount),
-          );
+        final data = json.decode(response.body);
+        print('Получен ответ от сервера: $data');
+        
+        if (data['Items'] != null) {
+          // Фильтруем товары с нулевым количеством
+          data['Items'] = (data['Items'] as List)
+              .where((item) => (item['amount'] as num) > 0)
+              .toList();
+          
+          // Восстанавливаем данные о товарах
+          for (var item in data['Items']) {
+            final itemKey = item['productId'] + (item['productSizeId'] ?? '');
+            if (_itemsData.containsKey(itemKey)) {
+              item['productName'] = _itemsData[itemKey]!['productName'];
+              item['productImage'] = _itemsData[itemKey]!['productImage'];
+              item['sizeName'] = _itemsData[itemKey]!['sizeName'];
+            }
+          }
+          _cart = Cart.fromJson(data);
           notifyListeners();
         }
+      } else if (response.statusCode == 422) {
+        final data = json.decode(response.body);
+        print('Ошибка валидации: $data');
+        throw Exception('Ошибка валидации: ${data['message']}');
       } else {
-        print('Ошибка удаления товара: ${response.statusCode}');
+        print('Неизвестная ошибка. Статус: ${response.statusCode}');
+        print('Тело ответа: ${response.body}');
+        throw Exception('Неизвестная ошибка: ${response.body}');
       }
     } catch (e) {
-      print('Ошибка при удалении товара: $e');
+      print('Ошибка при удалении из корзины: $e');
+      rethrow;
     }
+  }
+
+  // Получение количества товара в корзине
+  int getItemCount(String productId, String sizeId) {
+    if (_cart == null) return 0;
+    
+    final effectiveSizeId = sizeId.isEmpty ? null : sizeId;
+    
+    final count = _cart!.items
+        .where((item) => 
+            item.productId == productId && 
+            (item.productSizeId == effectiveSizeId))
+        .fold(0, (sum, item) => sum + item.amount);
+    
+    print('Найдено количество: $count');
+    return count;
   }
 
   // Очистка корзины

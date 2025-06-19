@@ -100,28 +100,40 @@ class _SearchPageState extends State<SearchPage> {
                     );
                   }
 
-                  return ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: searchResults.length,
-                    itemBuilder: (context, index) {
-                      final product = searchResults[index];
-                      return ProductCard(
-                        id: product.id,
-                        imageUrl: product.imageLinks.isNotEmpty ? product.imageLinks[0] : '',
-                        title: product.name,
-                        description: product.description,
-                        price: product.prices.isNotEmpty 
-                            ? product.prices.firstWhere(
-                                (price) => price.size.isDefault,
-                                orElse: () => product.prices[0]
-                              ).price.toString()
-                            : '0',
-                        sizes: product.prices.map((price) => {
-                          'id': price.size.id,
-                          'name': price.size.name,
-                        }).toList(),
-                      );
-                    },
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        double cardWidth = (constraints.maxWidth - 10) / 2;
+                        return Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: searchResults.map((product) {
+                            return SizedBox(
+                              width: cardWidth,
+                               child: ProductCard(
+                                                id: product.id,
+                                                title: product.name,
+                                                description: product.description,
+                                                imageUrl: product.imageLinks.isNotEmpty ? product.imageLinks.first : '',
+                                                price: product.prices.isNotEmpty 
+                                                    ? product.prices.firstWhere(
+                                                        (price) => price.size.isDefault,
+                                                        orElse: () => product.prices[0]
+                                                      ).price.toString()
+                                                    : '0',
+                                                sizes: product.prices.map((price) => {
+                                                  'id': price.size.id ?? product.id,
+                                                  'name': price.size.mapped_name ?? price.size.name ?? 'Порция',
+                                                  'count': price.count?.toString() ?? '1',
+                                                  'price': price.price.toString(),
+                                                }).toList(),
+                                              ),
+                            );
+                          }).toList(),
+                        );
+                      },
+                    ),
                   );
                 },
               ),

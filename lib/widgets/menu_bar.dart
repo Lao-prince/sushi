@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart'; // Подключаем flutter_svg
+import 'package:provider/provider.dart';
+import '../services/cart_provider.dart';
 import '../style/styles.dart'; // Импортируем стили
 
 class MenuBar extends StatelessWidget {
@@ -11,6 +13,13 @@ class MenuBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cartProvider = Provider.of<CartProvider>(context);
+    final totalItems = cartProvider.cart?.items.fold<int>(
+          0,
+          (sum, item) => sum + item.amount,
+        ) ??
+        0;
+
     // Список элементов с путями к SVG-иконкам и названиями
     final items = [
       {'icon': 'assets/images/menu.svg', 'label': 'Меню'},
@@ -29,6 +38,7 @@ class MenuBar extends StatelessWidget {
         children: List.generate(items.length, (index) {
           final item = items[index];
           final isSelected = index == selectedIndex;
+          final isCart = index == 2;
 
           return GestureDetector(
             onTap: () => onTap(index),
@@ -36,17 +46,39 @@ class MenuBar extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween, // Пространство между иконкой и текстом
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // SVG-иконка
-                SvgPicture.asset(
-                  item['icon'] as String, // Путь к SVG-иконке
-                  width: 30,
-                  height: 30,
-                  colorFilter: ColorFilter.mode(
-                    isSelected
-                        ? const Color(0xFFD1930D)
-                        : const Color(0xFFFDFDFD),
-                    BlendMode.srcIn,
-                  ),
+                Stack(
+                  children: [
+                    SvgPicture.asset(
+                      item['icon'] as String, // Путь к SVG-иконке
+                      width: 30,
+                      height: 30,
+                      colorFilter: ColorFilter.mode(
+                        isSelected
+                            ? const Color(0xFFD1930D)
+                            : const Color(0xFFFDFDFD),
+                        BlendMode.srcIn,
+                      ),
+                    ),
+                    if (isCart && totalItems > 0)
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFEE171A),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Text(
+                            totalItems.toString(),
+                            style: AppTextStyles.Caption.copyWith(
+                              color: Colors.white,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 4),
                 // Текст с использованием стиля Caption

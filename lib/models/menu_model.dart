@@ -79,19 +79,22 @@ class Product {
 class Price {
   final Size size;
   final int price;
+  final int count;
 
-  Price({required this.size, required this.price});
+  Price({required this.size, required this.price, required this.count});
 
   factory Price.fromJson(Map<String, dynamic> json) {
     return Price(
       size: Size.fromJson(json['size'] ?? {}),
       price: (json['price'] is num) ? json['price'].toInt() : 0,
+      count: (json['count'] is num) ? json['count'].toInt() : 0,
     );
   }
 
   Map<String, dynamic> toJson() => {
     'size': size.toJson(),
     'price': price,
+    'count': count,
   };
 }
 
@@ -99,14 +102,21 @@ class Size {
   final String id;
   final String name;
   final bool isDefault;
+  final String? mapped_name;
 
-  Size({required this.id, required this.name, required this.isDefault});
+  Size({
+    required this.id, 
+    required this.name, 
+    required this.isDefault,
+    this.mapped_name,
+  });
 
   factory Size.fromJson(Map<String, dynamic> json) {
     return Size(
       id: json['id']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
       isDefault: json['isDefault'] as bool? ?? false,
+      mapped_name: json['mapped_name']?.toString(),
     );
   }
 
@@ -114,5 +124,6 @@ class Size {
     'id': id,
     'name': name,
     'isDefault': isDefault,
+    'mapped_name': mapped_name,
   };
 }

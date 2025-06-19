@@ -13,19 +13,18 @@ class DottedLinePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    const double dashWidth = 10;
+    const double dashSpace = 4;
+    double startX = 0;
+
     final paint = Paint()
       ..color = color
       ..strokeWidth = 1.5;
 
-    const dashWidth = 4.0;
-    const dashSpace = 4.0;
-    double startX = 0;
-    final double y = size.height / 2;
-
     while (startX < size.width) {
       canvas.drawLine(
-        Offset(startX, y),
-        Offset(startX + dashWidth, y),
+        Offset(startX, 0),
+        Offset(startX + dashWidth, 0),
         paint,
       );
       startX += dashWidth + dashSpace;
@@ -33,21 +32,14 @@ class DottedLinePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return false;
+  }
 }
 
 class CartPage extends StatelessWidget {
-  const CartPage({Key? key}) : super(key: key);
+  const CartPage({super.key});
 
-  String getPortionText(int count) {
-    if (count % 10 == 1 && count % 100 != 11) {
-      return '$count порция';
-    } else if ([2, 3, 4].contains(count % 10) && ![12, 13, 14].contains(count % 100)) {
-      return '$count порции';
-    } else {
-      return '$count порций';
-    }
-  }
 
   Widget _stepIndicator(String number, String label, bool isActive) {
     return Column(
@@ -85,12 +77,17 @@ class CartPage extends StatelessWidget {
 
   Widget _dottedLineBetweenCircles({required bool isActive, required double circleRadius}) {
     return CustomPaint(
-      size: const Size(50, 2),
-      painter: DottedLinePainter(color: isActive ? const Color(0xFFD1930D) : const Color(0xFF848484)),
+      size: Size(circleRadius * 3, circleRadius),
+      painter: DottedLinePainter(
+        color: isActive ? const Color(0xFFD1930D) : const Color(0xFF848484),
+      ),
     );
   }
 
   Widget _topCartSummary(CartProvider cartProvider) {
+    final cart = cartProvider.cart;
+    if (cart == null) return const SizedBox.shrink();
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 15),
       child: Container(
@@ -118,7 +115,7 @@ class CartPage extends StatelessWidget {
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: cartProvider.items.length,
+              itemCount: cart.items.length,
               separatorBuilder: (context, index) => Column(
                 children: [
                   const SizedBox(height: 12),
@@ -127,30 +124,27 @@ class CartPage extends StatelessWidget {
                 ],
               ),
               itemBuilder: (context, index) {
-                final item = cartProvider.items[index];
-                // Получаем текст с порциями
-                String portionText = '';
-                if (item.sizeName != null) {
-                  final portions = int.tryParse(item.sizeName!) ?? 0;
-                  if (portions > 0) {
-                    if (portions % 10 == 1 && portions % 100 != 11) {
-                      portionText = '$portions порция';
-                    } else if ([2, 3, 4].contains(portions % 10) && ![12, 13, 14].contains(portions % 100)) {
-                      portionText = '$portions порции';
-                    } else {
-                      portionText = '$portions порций';
-                    }
-                  }
-                }
+                final item = cart.items[index];
                 return CartCard(
-                  title: item.productName ?? 'Название недоступно',
-                  subtitle: portionText,
-                  price: '${item.price} ₽',
-                  imagePath: item.productImage ?? '',
+                  title: item.productName,
+                  subtitle: item.sizeName,
+                  price: '${item.price.toInt()} ₽',
+                  imagePath: item.productImage,
                   quantity: item.amount,
-                  onRemove: () => cartProvider.updateQuantity(item.uuid, item.amount - 1),
-                  onAdd: () => cartProvider.updateQuantity(item.uuid, item.amount + 1),
-                  onDelete: () => cartProvider.removeItem(item.uuid),
+                  onRemove: () => cartProvider.updateQuantity(
+                    item.productId,
+                    item.productSizeId,
+                    item.amount - 1,
+                  ),
+                  onAdd: () => cartProvider.updateQuantity(
+                    item.productId,
+                    item.productSizeId,
+                    item.amount + 1,
+                  ),
+                  onDelete: () => cartProvider.removeFromCart(
+                    item.productId,
+                    item.productSizeId,
+                  ),
                 );
               },
             ),
@@ -162,7 +156,10 @@ class CartPage extends StatelessWidget {
 
   Widget _bottomOrderDetails(BuildContext context) {
     var cartProvider = Provider.of<CartProvider>(context);
-    double total = cartProvider.totalPrice;
+    final cart = cartProvider.cart;
+    if (cart == null) return const SizedBox.shrink();
+    
+    double total = cart.totalPrice;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -248,7 +245,8 @@ class CartPage extends StatelessWidget {
   Widget build(BuildContext context) {
     const double circleRadius = 15;
     var cartProvider = Provider.of<CartProvider>(context);
-    var cartItems = cartProvider.items;
+    final cart = cartProvider.cart;
+    final cartItems = cart?.items ?? [];
 
     return Scaffold(
       body: SafeArea(

@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../services/menu_provider.dart';
 import '../widgets/product_card.dart';
 import '../style/styles.dart';
+import 'dart:async';
 
 class MenuPage extends StatefulWidget {
   const MenuPage({super.key});
@@ -15,6 +16,8 @@ class MenuPage extends StatefulWidget {
 class _MenuPageState extends State<MenuPage> {
   final ScrollController _scrollController = ScrollController();
   final Map<String, GlobalKey> _categoryKeys = {};
+  String? _visibleCategoryId;
+  bool _isProgrammaticScroll = false;
 
   @override
   void initState() {
@@ -35,16 +38,59 @@ class _MenuPageState extends State<MenuPage> {
       final menuProvider = Provider.of<MenuProvider>(context, listen: false);
       menuProvider.loadMoreProducts();
     }
+
+    if (!_isProgrammaticScroll) {
+      _updateVisibleCategory();
+    }
+  }
+
+  void _updateVisibleCategory() {
+    final menuProvider = Provider.of<MenuProvider>(context, listen: false);
+    final categories = menuProvider.categories;
+    
+    for (var category in categories) {
+      final keyContext = _categoryKeys[category.id]?.currentContext;
+      if (keyContext != null) {
+        final RenderBox? renderBox = keyContext.findRenderObject() as RenderBox?;
+        if (renderBox != null) {
+          final position = renderBox.localToGlobal(Offset.zero);
+          final size = renderBox.size;
+          
+          if (position.dy >= 0 && position.dy <= MediaQuery.of(context).size.height) {
+            if (_visibleCategoryId != category.id) {
+              setState(() {
+                _visibleCategoryId = category.id;
+              });
+              menuProvider.setSelectedCategory(category.id);
+            }
+            break;
+          }
+        }
+      }
+    }
   }
 
   void _scrollToCategory(String categoryId) {
     final keyContext = _categoryKeys[categoryId]?.currentContext;
     if (keyContext != null) {
+      setState(() {
+        _isProgrammaticScroll = true;
+        _visibleCategoryId = categoryId;
+      });
+      
       Scrollable.ensureVisible(
         keyContext,
-        duration: const Duration(milliseconds: 500),
+        duration: const Duration(milliseconds: 3000),
         curve: Curves.easeInOut,
-      );
+      ).then((_) {
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (mounted) {
+            setState(() {
+              _isProgrammaticScroll = false;
+            });
+          }
+        });
+      });
     }
   }
 
@@ -71,7 +117,6 @@ class _MenuPageState extends State<MenuPage> {
                           ),
                         ),
                         const SizedBox(height: 25),
-                        // Горизонтальный список категорий
                         if (menuProvider.isLoadingCategories)
                           const Center(child: CircularProgressIndicator())
                         else
@@ -91,6 +136,9 @@ class _MenuPageState extends State<MenuPage> {
 
                                 return GestureDetector(
                                   onTap: () {
+                                    setState(() {
+                                      _visibleCategoryId = category.id;
+                                    });
                                     menuProvider.setSelectedCategory(category.id);
                                     _scrollToCategory(category.id);
                                   },
@@ -100,9 +148,9 @@ class _MenuPageState extends State<MenuPage> {
                                       padding: const EdgeInsets.all(4),
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(8),
-                                        color: menuProvider.selectedCategoryId == category.id 
+                                        color: _visibleCategoryId == category.id 
                                           ? const Color(0xFFD1930D)
-                                          : Colors.transparent,
+                                          : const Color.fromARGB(0, 255, 255, 255),
                                       ),
                                       child: Column(
                                         children: [
@@ -153,8 +201,8 @@ class _MenuPageState extends State<MenuPage> {
                                               words.join('\n'),
                                               textAlign: TextAlign.center,
                                               style: AppTextStyles.Body.copyWith(
-                                                color: menuProvider.selectedCategoryId == category.id 
-                                                  ? Colors.black
+                                                color: _visibleCategoryId == category.id 
+                                                  ? const Color.fromARGB(255, 255, 255, 255)
                                                   : Colors.white,
                                               ),
                                             ),
@@ -205,26 +253,25 @@ class _MenuPageState extends State<MenuPage> {
                                           spacing: 10,
                                           runSpacing: 10,
                                           children: products.map((product) {
-                                            // Преобразуем размеры в нужный формат
-                                            List<Map<String, String>> sizes = product.prices.map((price) => {
-                                              'id': price.size.id,
-                                              'name': price.size.name,
-                                            }).toList();
-
                                             return SizedBox(
                                               width: cardWidth,
                                               child: ProductCard(
                                                 id: product.id,
-                                                imageUrl: product.imageLinks.isNotEmpty ? product.imageLinks[0] : '',
                                                 title: product.name,
                                                 description: product.description,
+                                                imageUrl: product.imageLinks.isNotEmpty ? product.imageLinks.first : '',
                                                 price: product.prices.isNotEmpty 
                                                     ? product.prices.firstWhere(
                                                         (price) => price.size.isDefault,
                                                         orElse: () => product.prices[0]
                                                       ).price.toString()
                                                     : '0',
-                                                sizes: sizes,
+                                                sizes: product.prices.map((price) => {
+                                                  'id': price.size.id ?? product.id,
+                                                  'name': price.size.mapped_name ?? price.size.name ?? 'Порция',
+                                                  'count': price.count?.toString() ?? '1',
+                                                  'price': price.price.toString(),
+                                                }).toList(),
                                               ),
                                             );
                                           }).toList(),

@@ -220,9 +220,9 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           _stepIndicator('1', 'Мой заказ', true),
-          _dottedLineBetweenCircles(isActive: true),
+          _dottedLineBetweenCircles(isActive: true, circleRadius: 15),
           _stepIndicator('2', 'Оформление', true),
-          _dottedLineBetweenCircles(isActive: false),
+          _dottedLineBetweenCircles(isActive: false, circleRadius: 15),
           _stepIndicator('3', 'Заказ принят', false),
         ],
       ),
@@ -263,10 +263,12 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
     );
   }
 
-  Widget _dottedLineBetweenCircles({required bool isActive}) {
+  Widget _dottedLineBetweenCircles({required bool isActive, required double circleRadius}) {
     return CustomPaint(
-      size: const Size(50, 2),
-      painter: DottedLinePainter(color: isActive ? const Color(0xFFD1930D) : const Color(0xFF848484)),
+      size: Size(circleRadius * 3, circleRadius),
+      painter: DottedLinePainter(
+        color: isActive ? const Color(0xFFD1930D) : const Color(0xFF848484),
+      ),
     );
   }
 
@@ -476,8 +478,8 @@ class DottedLinePainter extends CustomPainter {
 
     while (startX < size.width) {
       canvas.drawLine(
-        Offset(startX, size.height / 2),
-        Offset(startX + dashWidth, size.height / 2),
+        Offset(startX, 0),
+        Offset(startX + dashWidth, 0),
         paint,
       );
       startX += dashWidth + dashSpace;
@@ -485,5 +487,7 @@ class DottedLinePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return false;
+  }
 }
