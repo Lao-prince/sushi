@@ -70,7 +70,15 @@ class MenuProvider extends ChangeNotifier {
               _categorizedProducts[category.id] = products;
             } else {
               _categorizedProducts[category.id] ??= [];
-              _categorizedProducts[category.id]!.addAll(products);
+              // Получаем ID существующих продуктов
+              final existingProductIds = _categorizedProducts[category.id]!
+                  .map((p) => p.id)
+                  .toSet();
+              // Добавляем только новые, уникальные продукты
+              final newProducts = products
+                  .where((p) => !existingProductIds.contains(p.id))
+                  .toList();
+              _categorizedProducts[category.id]!.addAll(newProducts);
             }
           }
 

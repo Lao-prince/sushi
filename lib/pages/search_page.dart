@@ -26,13 +26,24 @@ class _SearchPageState extends State<SearchPage> {
     if (_searchQuery.isEmpty) return [];
 
     final query = _searchQuery.toLowerCase().trim();
+    
+    // Получаем все товары из всех категорий
     final allProducts = menuProvider.categorizedProducts.values
         .expand((products) => products)
         .where((product) =>
-            (product.name.toLowerCase().contains(query) ||
-            product.description.toLowerCase().contains(query)) &&
-            product.prices.isNotEmpty)
+            product.name.toLowerCase().contains(query) ||
+            product.description.toLowerCase().contains(query))
         .toList();
+
+    // Сортируем товары так, чтобы товары с порциями и без них были перемешаны
+    allProducts.sort((a, b) {
+      final aHasPortions = a.prices.any((price) => price.size.id != a.id);
+      final bHasPortions = b.prices.any((price) => price.size.id != b.id);
+      if (aHasPortions == bHasPortions) {
+        return 0; // Сохраняем текущий порядок если оба с порциями или оба без
+      }
+      return aHasPortions ? -1 : 1; // Смешиваем товары с порциями и без
+    });
 
     return allProducts;
   }
@@ -111,24 +122,7 @@ class _SearchPageState extends State<SearchPage> {
                           children: searchResults.map((product) {
                             return SizedBox(
                               width: cardWidth,
-                               child: ProductCard(
-                                                id: product.id,
-                                                title: product.name,
-                                                description: product.description,
-                                                imageUrl: product.imageLinks.isNotEmpty ? product.imageLinks.first : '',
-                                                price: product.prices.isNotEmpty 
-                                                    ? product.prices.firstWhere(
-                                                        (price) => price.size.isDefault,
-                                                        orElse: () => product.prices[0]
-                                                      ).price.toString()
-                                                    : '0',
-                                                sizes: product.prices.map((price) => {
-                                                  'id': price.size.id ?? product.id,
-                                                  'name': price.size.mapped_name ?? price.size.name ?? 'Порция',
-                                                  'count': price.count?.toString() ?? '1',
-                                                  'price': price.price.toString(),
-                                                }).toList(),
-                                              ),
+                              child: ProductCard(product: product),
                             );
                           }).toList(),
                         );

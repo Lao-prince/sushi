@@ -7,21 +7,11 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../models/menu_model.dart';
 
 class ProductCard extends StatefulWidget {
-  final String id;
-  final String imageUrl;
-  final String title;
-  final String description;
-  final String price;
-  final List<Map<String, dynamic>> sizes;
+  final Product product;
 
   const ProductCard({
     Key? key,
-    required this.id,
-    required this.imageUrl,
-    required this.title,
-    required this.description,
-    required this.price,
-    required this.sizes,
+    required this.product,
   }) : super(key: key);
 
   @override
@@ -43,120 +33,86 @@ class _ProductCardState extends State<ProductCard> {
 
   late String selectedSizeId;
   late String currentPrice;
+  late List<Map<String, dynamic>> sizes;
   bool isFavorite = false;
+  bool _isExpanded = false;
 
-  bool get hasValidSizes => widget.sizes.isNotEmpty;
+  bool get hasValidSizes => sizes.isNotEmpty;
 
   @override
   void initState() {
     super.initState();
+    _initializeFromProduct();
+  }
+
+  @override
+  void didUpdateWidget(covariant ProductCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.product.id != oldWidget.product.id) {
+      _initializeFromProduct();
+    }
+  }
+
+  void _initializeFromProduct() {
+    final product = widget.product;
     
-    if (hasValidSizes) {
-      selectedSizeId = widget.sizes.first['id'] as String;
-      currentPrice = widget.sizes.first['price']?.toString() ?? widget.price;
+    sizes = product.prices.map((price) {
+      return <String, dynamic>{
+        'id': price.size.id.isEmpty ? product.id : price.size.id,
+        'name': price.size.mapped_name ?? price.size.name ?? 'Порция',
+        'count': price.count.toString(),
+        'price': price.price.toString(),
+      };
+    }).toList();
+
+    if (sizes.isNotEmpty) {
+      final defaultSize = sizes.firstWhere(
+        (s) => widget.product.prices.any((p) => p.size.id == s['id'] && p.size.isDefault),
+        orElse: () => sizes.first,
+      );
+      selectedSizeId = defaultSize['id'];
+      currentPrice = defaultSize['price'];
     } else {
-      // Для товаров без порций используем ID самого товара
-      selectedSizeId = widget.id;
-      currentPrice = widget.sizes.isNotEmpty 
-          ? widget.sizes.first['price']?.toString() ?? widget.price
-          : widget.price;
+      selectedSizeId = product.id;
+      currentPrice = '0';
     }
   }
 
   void _updatePrice(String sizeId) {
-    if (!hasValidSizes) return;
-    
-    try {
-      final selectedSize = widget.sizes.firstWhere(
-        (size) => size['id'] == sizeId,
-      );
-      setState(() {
-        currentPrice = selectedSize['price']?.toString() ?? widget.price;
-      });
-    } catch (e) {
-      // В случае ошибки оставляем текущую цену без изменений
-    }
-  }
-
-  String formatPortion(String portion) {
-    int? number = int.tryParse(portion);
-    if (number == null) return portion;
-    return '$number шт.';
+    final selectedSizeData = sizes.firstWhere((size) => size['id'] == sizeId);
+    setState(() {
+      currentPrice = selectedSizeData['price'];
+    });
   }
 
   void _addToCart() {
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
+
+    // Определяем, есть ли у товара реальные порции (ID размера не пустой и не равен ID товара)
+    bool hasRealPortions = widget.product.prices.any((p) => p.size.id.isNotEmpty && p.size.id != widget.product.id);
     
-    if (hasValidSizes) {
-      Map<String, dynamic> selectedSize;
-      try {
-        selectedSize = widget.sizes.firstWhere(
-          (size) => size['id'] == selectedSizeId,
-        );
-      } catch (e) {
-        selectedSize = widget.sizes.first;
-      }
-      
-      final product = Product(
-        id: widget.id,
-        name: widget.title,
-        imageLinks: [widget.imageUrl],
-        description: widget.description,
-        category: Category(id: '', name: ''),
-        prices: [
-          Price(
-            size: Size(
-              id: selectedSizeId,
-              name: selectedSize['name'] as String,
-              isDefault: true
-            ),
-            price: int.tryParse(currentPrice) ?? 0,
-            count: int.tryParse(selectedSize['count'].toString()) ?? 1,
-          )
-        ],
-      );
-      
-      cartProvider.addToCart(product, selectedSizeId, 1);
-    } else {
-      // Для товаров без порций используем ID товара
-      final product = Product(
-        id: widget.id,
-        name: widget.title,
-        imageLinks: [widget.imageUrl],
-        description: widget.description,
-        category: Category(id: '', name: ''),
-        prices: [
-          Price(
-            size: Size(
-              id: widget.id,
-              name: 'Стандартная порция',
-              isDefault: true
-            ),
-            price: int.tryParse(currentPrice) ?? 0,
-            count: 1
-          )
-        ],
-      );
-      
-      cartProvider.addToCart(product, widget.id, 1);
-    }
+    // Если есть реальные порции, используем выбранный ID. 
+    // Если нет (товар без порций), используем ID самого товара как идентификатор в `ProductCard`,
+    // но в провайдер отправляем пустую строку, чтобы он понял, что это товар без ID порции.
+    final sizeIdForProvider = hasRealPortions ? selectedSizeId : '';
+
+    cartProvider.addToCart(widget.product, sizeIdForProvider, 1);
   }
 
   Widget _buildProductImage() {
+    final imageUrl = widget.product.imageLinks.isNotEmpty ? widget.product.imageLinks.first : '';
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(_borderRadius)),
       child: AspectRatio(
         aspectRatio: 1,
-        child: widget.imageUrl.isNotEmpty
+        child: imageUrl.isNotEmpty
             ? CachedNetworkImage(
-                imageUrl: widget.imageUrl,
+                imageUrl: imageUrl,
                 fit: BoxFit.cover,
                 placeholder: (context, url) => Container(
                   color: _darkBlueColor,
                   child: const Center(
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                    ),
+                    child: CircularProgressIndicator(strokeWidth: 2),
                   ),
                 ),
                 errorWidget: (context, url, error) => Image.asset(
@@ -187,10 +143,7 @@ class _ProductCardState extends State<ProductCard> {
           height: 30,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(
-              color: _goldColor,
-              width: _borderWidth,
-            ),
+            border: Border.all(color: _goldColor, width: _borderWidth),
             color: isFavorite ? Colors.red : Colors.transparent,
           ),
           child: Icon(
@@ -204,24 +157,16 @@ class _ProductCardState extends State<ProductCard> {
   }
 
   Widget _buildSizeSelector() {
-    // Проверяем, есть ли у товара порции (кроме стандартной)
-    bool hasPortions = widget.sizes.any((size) => 
-      size['id'] != widget.id && 
-      (int.tryParse(size['count'].toString()) ?? 0) > 0
-    );
+    bool hasMoreThanOnePortion = sizes.where((s) => (int.tryParse(s['count']) ?? 0) > 0).length > 1;
 
-    if (!hasPortions) return const SizedBox(width: 8);
+    if (!hasMoreThanOnePortion) return const SizedBox.shrink();
 
-    // Фильтруем размеры
-    final validSizes = widget.sizes.where((size) => 
-      size['id'] != widget.id && 
-      (int.tryParse(size['count'].toString()) ?? 0) > 0
-    ).toSet().toList();
+    final validSizes = sizes.where((s) => (int.tryParse(s['count']) ?? 0) > 0).toList();
 
-    // Если текущий выбранный размер не в списке валидных, выбираем первый валидный
-    if (!validSizes.any((size) => size['id'] == selectedSizeId)) {
-      selectedSizeId = validSizes.first['id'] as String;
-      _updatePrice(selectedSizeId);
+    if (!validSizes.any((s) => s['id'] == selectedSizeId)) {
+      final firstValid = validSizes.first;
+      selectedSizeId = firstValid['id'];
+      currentPrice = firstValid['price'];
     }
 
     return Container(
@@ -231,16 +176,14 @@ class _ProductCardState extends State<ProductCard> {
         border: Border.all(color: _goldColor, width: _borderWidth),
       ),
       child: DropdownButton<String>(
+        isDense: true,
         value: selectedSizeId,
         items: validSizes.map((size) {
           return DropdownMenuItem<String>(
-            value: size['id'] as String,
+            value: size['id'],
             child: Text(
               '${size['count']} шт.',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-              ),
+              style: const TextStyle(color: Colors.white, fontSize: 14),
             ),
           );
         }).toList(),
@@ -248,97 +191,112 @@ class _ProductCardState extends State<ProductCard> {
           if (value != null) {
             setState(() {
               selectedSizeId = value;
+              _updatePrice(value);
             });
-            _updatePrice(value);
           }
         },
-        dropdownColor: _darkBlueColor,
-        underline: const SizedBox(),
         icon: const Icon(Icons.arrow_drop_down, color: _goldColor),
-        isDense: true,
-        style: const TextStyle(
-          fontSize: 14,
-          color: Colors.white,
-        ),
+        underline: const SizedBox.shrink(),
+        dropdownColor: _darkBlueColor,
+        style: const TextStyle(color: Colors.white),
       ),
     );
   }
 
-  Widget _buildPrice() {
-    return Text(
-      '$currentPrice ₽',
-      style: const TextStyle(
-        fontSize: _priceFontSize,
-        fontFamily: 'HattoriHanzo',
-        color: _goldColor,
-      ),
-    );
-  }
+  Widget _buildCartControls(CartProvider cartProvider) {
+    bool hasRealPortions = widget.product.prices.any((p) => p.size.id.isNotEmpty && p.size.id != widget.product.id);
+    final sizeIdForCart = hasRealPortions ? selectedSizeId : '';
 
-  Widget _buildCartControls(int cartItemCount) {
+    final cartItemCount = cartProvider.getItemCount(widget.product.id, sizeIdForCart);
+
     if (cartItemCount > 0) {
       return Container(
-        decoration: const BoxDecoration(
+        height: 44,
+        decoration: BoxDecoration(
           color: _goldColor,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(25),
-            bottomRight: Radius.circular(25),
-          ),
+          borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Expanded(
-              child: InkWell(
-                onTap: () {
-                  Provider.of<CartProvider>(context, listen: false)
-                      .updateQuantity(widget.id, selectedSizeId, cartItemCount - 1);
-                },
-                child: const Center(
-                  child: Icon(Icons.remove, color: Colors.white),
-                ),
-              ),
+            IconButton(
+              onPressed: () {
+                cartProvider.updateQuantity(widget.product.id, sizeIdForCart, cartItemCount - 1);
+              },
+              icon: const Icon(Icons.remove, color: Colors.white),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
             ),
-            Expanded(
-              child: Center(
-                child: Text(
-                  '$cartItemCount',
-                  style: AppTextStyles.Subtitle.copyWith(
-                    color: Colors.white,
-                  ),
-                ),
-              ),
+            Text(
+              '$cartItemCount',
+              style: AppTextStyles.H3.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
             ),
-            Expanded(
-              child: InkWell(
-                onTap: _addToCart,
-                child: const Center(
-                  child: Icon(Icons.add, color: Colors.white),
-                ),
-              ),
+            IconButton(
+              onPressed: _addToCart,
+              icon: const Icon(Icons.add, color: Colors.white),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
             ),
           ],
         ),
       );
     }
 
-    return ElevatedButton(
-      onPressed: _addToCart,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: _goldColor,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(25),
-            bottomRight: Radius.circular(25),
+    return SizedBox(
+      width: double.infinity,
+      height: 44,
+      child: ElevatedButton(
+        onPressed: _addToCart,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _goldColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
           ),
         ),
+        child: const Text('Добавить', style: TextStyle(color: Colors.white)),
       ),
-      child: const Text(
-        'Добавить',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-        ),
+    );
+  }
+
+  Widget _buildDescription() {
+    final textStyle = AppTextStyles.Body.copyWith(color: _grayColor);
+    final moreStyle = AppTextStyles.Body.copyWith(color: _goldColor, fontWeight: FontWeight.bold);
+
+    // Если текст развернут, делаем всю область кликабельной для сворачивания
+    if (_isExpanded) {
+      return GestureDetector(
+        onTap: () {
+          setState(() {
+            _isExpanded = false;
+          });
+        },
+        child: Text(widget.product.description, style: textStyle),
+      );
+    }
+
+    // Оборачиваем весь Stack в один GestureDetector
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _isExpanded = true;
+        });
+      },
+      child: Stack(
+        alignment: Alignment.bottomRight,
+        children: [
+          Text(
+            widget.product.description,
+            style: textStyle,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          // Этот Positioned нужен, чтобы многоточие не растягивало Stack
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: Text('...', style: moreStyle),
+          ),
+        ],
       ),
     );
   }
@@ -346,16 +304,15 @@ class _ProductCardState extends State<ProductCard> {
   @override
   Widget build(BuildContext context) {
     final cartProvider = Provider.of<CartProvider>(context);
-    final cartItemCount = cartProvider.getItemCount(widget.id, selectedSizeId);
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(_borderRadius),
         gradient: const LinearGradient(
           colors: [_darkBlueColor, _blackColor],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
+        borderRadius: BorderRadius.circular(_borderRadius),
         border: Border.all(color: _goldColor, width: _borderWidth),
       ),
       child: Column(
@@ -368,29 +325,37 @@ class _ProductCardState extends State<ProductCard> {
             ],
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 15),
+            padding: const EdgeInsets.all(12.0),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(widget.title, style: AppTextStyles.Title),
-                const SizedBox(height: 4),
                 Text(
-                  widget.description,
-                  style: AppTextStyles.Body.copyWith(color: _grayColor),
+                  widget.product.name,
+                  style: AppTextStyles.H3.copyWith(color: Colors.white),
                 ),
                 const SizedBox(height: 8),
+                _buildDescription(),
+                const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     _buildSizeSelector(),
-                    _buildPrice(),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        '${double.tryParse(currentPrice)?.toStringAsFixed(0) ?? currentPrice} ₽',
+                        style: AppTextStyles.H2.copyWith(
+                          color: _goldColor,
+                          fontSize: _priceFontSize,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  height: 40,
-                  child: _buildCartControls(cartItemCount),
-                ),
+                const SizedBox(height: 12),
+                _buildCartControls(cartProvider),
               ],
             ),
           ),
@@ -399,3 +364,4 @@ class _ProductCardState extends State<ProductCard> {
     );
   }
 }
+

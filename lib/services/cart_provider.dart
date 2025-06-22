@@ -93,10 +93,6 @@ class CartProvider with ChangeNotifier {
   Future<void> addToCart(Product product, String sizeId, int amount) async {
     try {
       if (product.id.isEmpty || amount <= 0) {
-        print('Некорректные данные для добавления в корзину:');
-        print('productId: ${product.id}');
-        print('sizeId: $sizeId');
-        print('amount: $amount');
         return;
       }
 
@@ -109,27 +105,25 @@ class CartProvider with ChangeNotifier {
         headers['Cookie'] = _sessionCookie!;
       }
 
-      // Для товаров без порций используем null как productSizeId
+      // Для товаров без порций sizeId будет пустой строкой, превращаем его в null для сервера
       final effectiveSizeId = sizeId.isEmpty ? null : sizeId;
 
-      // Получаем размер и формируем название
-      final size = product.prices.firstWhere(
-        (price) => price.size.id == sizeId,
+      // Находим соответствующий Price object.
+      // Для товаров без порций ищем по пустой строке в ID размера.
+      final priceInfo = product.prices.firstWhere(
+        (p) => (sizeId.isEmpty && p.size.id.isEmpty) || p.size.id == sizeId,
         orElse: () => product.prices.first,
       );
 
-      // Формируем название размера как в меню
-      String sizeName = size.size.mapped_name ?? size.size.name;
-      // Для товаров без порций или с количеством 0 не добавляем "(0 шт.)"
-      if (size.count > 1) {
-        sizeName += ' (${size.count} шт.)';
+      String sizeName = priceInfo.size.mapped_name ?? priceInfo.size.name;
+      if (priceInfo.count > 1) {
+        sizeName += ' (${priceInfo.count} шт.)';
       }
 
-      // Сохраняем данные о товаре
       final itemKey = product.id + (effectiveSizeId ?? '');
       _itemsData[itemKey] = {
         'productName': product.name,
-        'productImage': product.imageLinks.isNotEmpty ? product.imageLinks[0] : '',
+        'productImage': product.imageLinks.isNotEmpty ? product.imageLinks.first : '',
         'sizeName': sizeName,
       };
 
@@ -137,9 +131,10 @@ class CartProvider with ChangeNotifier {
         'productId': product.id,
         'productSizeId': effectiveSizeId,
         'amount': amount,
+        'price': priceInfo.price,
         'comment': '',
         'productName': product.name,
-        'productImage': product.imageLinks.isNotEmpty ? product.imageLinks[0] : '',
+        'productImage': product.imageLinks.isNotEmpty ? product.imageLinks.first : '',
         'sizeName': sizeName,
       };
 
