@@ -55,13 +55,6 @@ class _SearchPageState extends State<SearchPage> {
         child: Column(
           children: [
             const SizedBox(height: 20),
-            Center(
-              child: Text(
-                'Поиск',
-                style: AppTextStyles.H1.copyWith(color: Colors.white),
-              ),
-            ),
-            const SizedBox(height: 20),
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: TextField(
@@ -124,9 +117,9 @@ class _SearchPageState extends State<SearchPage> {
                               width: cardWidth,
                               child: ProductCard(product: product),
                             );
-                          }).toList(),
-                        );
-                      },
+                        }).toList(),
+                      );
+                    },
                     ),
                   );
                 },

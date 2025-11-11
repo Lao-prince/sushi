@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import '../style/styles.dart';
 import '../services/cart_provider.dart';
+import '../services/auth_provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/menu_model.dart';
 
@@ -23,7 +23,7 @@ class _ProductCardState extends State<ProductCard> {
   static const Color _goldColor = Color(0xFFD1930D);
   static const Color _darkBlueColor = Color(0xFF3A435B);
   static const Color _blackColor = Color(0xFF0A0A0A);
-  static const Color _grayColor = Color(0xFF555555);
+  static const Color _grayColor = Color.fromARGB(255, 155, 155, 155);
 
   // Константы для размеров
   static const double _borderRadius = 15.0;
@@ -34,7 +34,6 @@ class _ProductCardState extends State<ProductCard> {
   late String selectedSizeId;
   late String currentPrice;
   late List<Map<String, dynamic>> sizes;
-  bool isFavorite = false;
   bool _isExpanded = false;
 
   bool get hasValidSizes => sizes.isNotEmpty;
@@ -59,17 +58,20 @@ class _ProductCardState extends State<ProductCard> {
     sizes = product.prices.map((price) {
       return <String, dynamic>{
         'id': price.size.id.isEmpty ? product.id : price.size.id,
-        'name': price.size.mapped_name ?? price.size.name ?? 'Порция',
+        'name': price.size.mapped_name ?? price.size.name,
         'count': price.count.toString(),
         'price': price.price.toString(),
       };
     }).toList();
 
     if (sizes.isNotEmpty) {
-      final defaultSize = sizes.firstWhere(
-        (s) => widget.product.prices.any((p) => p.size.id == s['id'] && p.size.isDefault),
-        orElse: () => sizes.first,
-      );
+      // Ищем размер с максимальным количеством штук
+      final defaultSize = sizes.fold(sizes.first, (current, next) {
+        final currentCount = int.tryParse(current['count']) ?? 0;
+        final nextCount = int.tryParse(next['count']) ?? 0;
+        return nextCount > currentCount ? next : current;
+      });
+      
       selectedSizeId = defaultSize['id'];
       currentPrice = defaultSize['price'];
     } else {
@@ -80,9 +82,9 @@ class _ProductCardState extends State<ProductCard> {
 
   void _updatePrice(String sizeId) {
     final selectedSizeData = sizes.firstWhere((size) => size['id'] == sizeId);
-    setState(() {
+      setState(() {
       currentPrice = selectedSizeData['price'];
-    });
+        });
   }
 
   void _addToCart() {
@@ -103,56 +105,83 @@ class _ProductCardState extends State<ProductCard> {
     final imageUrl = widget.product.imageLinks.isNotEmpty ? widget.product.imageLinks.first : '';
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(_borderRadius)),
-      child: AspectRatio(
-        aspectRatio: 1,
+                child: AspectRatio(
+                  aspectRatio: 1,
         child: imageUrl.isNotEmpty
-            ? CachedNetworkImage(
+                      ? CachedNetworkImage(
                 imageUrl: imageUrl,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(
                   color: _darkBlueColor,
-                  child: const Center(
+                            child: const Center(
                     child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
+                            ),
+                          ),
+                          errorWidget: (context, url, error) => Image.asset(
+                            'assets/images/zaglushka.png',
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      : Image.asset(
+                          'assets/images/zaglushka.png',
+                          fit: BoxFit.cover,
+                        ),
                 ),
-                errorWidget: (context, url, error) => Image.asset(
-                  'assets/images/zaglushka.png',
-                  fit: BoxFit.cover,
-                ),
-              )
-            : Image.asset(
-                'assets/images/zaglushka.png',
-                fit: BoxFit.cover,
-              ),
-      ),
     );
   }
 
-  Widget _buildFavoriteButton() {
+  Widget _buildFavoriteButton(bool isCurrentlyFavorite) {
     return Positioned(
-      top: 10,
-      right: 10,
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            isFavorite = !isFavorite;
-          });
-        },
-        child: Container(
-          width: 30,
-          height: 30,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
+                top: 10,
+                right: 10,
+                child: GestureDetector(
+                  onTap: () async {
+                    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                    
+                    if (!authProvider.isAuthenticated) {
+                      // Показываем сообщение о необходимости авторизации
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Для добавления в избранное необходимо войти в аккаунт'),
+                          backgroundColor: Colors.orange,
+                        ),
+                      );
+                      return;
+                    }
+
+                    try {
+                      final newLikedState = await authProvider.toggleProductLike(widget.product.id);
+                      
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                content: Text(newLikedState ? 'Добавлено в избранное' : 'Удалено из избранного'),
+                backgroundColor: newLikedState ? Colors.green : Colors.grey,
+                        ),
+                      );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Ошибка при изменении избранного'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  },
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
             border: Border.all(color: _goldColor, width: _borderWidth),
-            color: isFavorite ? Colors.red : Colors.transparent,
-          ),
-          child: Icon(
-            Icons.favorite,
-            color: isFavorite ? Colors.white : _goldColor,
+            color: isCurrentlyFavorite ? Colors.red : Colors.transparent,
+                    ),
+                    child: Icon(
+                      Icons.favorite,
+            color: isCurrentlyFavorite ? Colors.white : _goldColor,
             size: _iconSize,
-          ),
-        ),
-      ),
+                    ),
+                  ),
+                ),
     );
   }
 
@@ -170,31 +199,31 @@ class _ProductCardState extends State<ProductCard> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(4),
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(4),
         border: Border.all(color: _goldColor, width: _borderWidth),
-      ),
-      child: DropdownButton<String>(
+                        ),
+                        child: DropdownButton<String>(
         isDense: true,
-        value: selectedSizeId,
+                          value: selectedSizeId,
         items: validSizes.map((size) {
-          return DropdownMenuItem<String>(
+                            return DropdownMenuItem<String>(
             value: size['id'],
-            child: Text(
-              '${size['count']} шт.',
+                              child: Text(
+                                '${size['count']} шт.',
               style: const TextStyle(color: Colors.white, fontSize: 14),
-            ),
-          );
-        }).toList(),
-        onChanged: (value) {
-          if (value != null) {
-            setState(() {
-              selectedSizeId = value;
-              _updatePrice(value);
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                selectedSizeId = value;
+                              _updatePrice(value);
             });
-          }
-        },
+                            }
+                          },
         icon: const Icon(Icons.arrow_drop_down, color: _goldColor),
         underline: const SizedBox.shrink(),
         dropdownColor: _darkBlueColor,
@@ -226,8 +255,8 @@ class _ProductCardState extends State<ProductCard> {
               icon: const Icon(Icons.remove, color: Colors.white),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
-            ),
-            Text(
+                      ),
+                      Text(
               '$cartItemCount',
               style: AppTextStyles.H3.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
             ),
@@ -236,9 +265,9 @@ class _ProductCardState extends State<ProductCard> {
               icon: const Icon(Icons.add, color: Colors.white),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
-            ),
-          ],
-        ),
+                      ),
+                    ],
+                  ),
       );
     }
 
@@ -254,7 +283,7 @@ class _ProductCardState extends State<ProductCard> {
           ),
         ),
         child: const Text('Добавить', style: TextStyle(color: Colors.white)),
-      ),
+                            ),
     );
   }
 
@@ -265,13 +294,13 @@ class _ProductCardState extends State<ProductCard> {
     // Если текст развернут, делаем всю область кликабельной для сворачивания
     if (_isExpanded) {
       return GestureDetector(
-        onTap: () {
+                                  onTap: () {
           setState(() {
             _isExpanded = false;
           });
         },
         child: Text(widget.product.description, style: textStyle),
-      );
+                                    );
     }
 
     // Оборачиваем весь Stack в один GestureDetector
@@ -289,21 +318,27 @@ class _ProductCardState extends State<ProductCard> {
             style: textStyle,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-          ),
+                                    ),
           // Этот Positioned нужен, чтобы многоточие не растягивало Stack
           Positioned(
             right: 0,
             bottom: 0,
             child: Text('...', style: moreStyle),
-          ),
-        ],
-      ),
+                              ),
+                            ],
+                          ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final cartProvider = Provider.of<CartProvider>(context);
+
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, child) {
+        final isCurrentlyFavorite = authProvider.isAuthenticated 
+            ? authProvider.favoriteProductIds.contains(widget.product.id)
+            : false; // Для неавторизованных пользователей все товары не в избранном
 
     return Container(
       decoration: BoxDecoration(
@@ -321,7 +356,7 @@ class _ProductCardState extends State<ProductCard> {
           Stack(
             children: [
               _buildProductImage(),
-              _buildFavoriteButton(),
+                  _buildFavoriteButton(isCurrentlyFavorite),
             ],
           ),
           Padding(
@@ -329,30 +364,67 @@ class _ProductCardState extends State<ProductCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                SizedBox(
+                  height: 48, // Фиксированная высота для названия (2 строки)
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: MediaQuery.of(context).size.width * 0.4, // Ширина карточки
+                      ),
+                      child: Text(
                   widget.product.name,
                   style: AppTextStyles.H3.copyWith(color: Colors.white),
+                        maxLines: 2,
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 8),
-                _buildDescription(),
+                _isExpanded 
+                  ? _buildDescription()
+                  : SizedBox(
+                      height: 44, // Фиксированная высота для описания (2 строки)
+                      child: _buildDescription(),
+                    ),
                 const SizedBox(height: 12),
-                Row(
+                // Если товар не делится (canSplit: false), показываем цену по центру
+                widget.product.canSplit
+                  ? Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     _buildSizeSelector(),
                     const SizedBox(width: 8),
                     Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerRight,
                       child: Text(
                         '${double.tryParse(currentPrice)?.toStringAsFixed(0) ?? currentPrice} ₽',
-                        style: AppTextStyles.H2.copyWith(
+                              style: AppTextStyles.H3.copyWith(
                           color: _goldColor,
                           fontSize: _priceFontSize,
-                          fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                  ],
+                    )
+                  : Center(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          '${double.tryParse(currentPrice)?.toStringAsFixed(0) ?? currentPrice} ₽',
+                          style: AppTextStyles.H3.copyWith(
+                            color: _goldColor,
+                            fontSize: _priceFontSize,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
                 ),
                 const SizedBox(height: 12),
                 _buildCartControls(cartProvider),
@@ -361,6 +433,8 @@ class _ProductCardState extends State<ProductCard> {
           ),
         ],
       ),
+        );
+      },
     );
   }
 }

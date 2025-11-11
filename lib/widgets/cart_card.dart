@@ -10,7 +10,6 @@ class CartCard extends StatelessWidget {
   final int quantity;
   final VoidCallback onRemove;
   final VoidCallback onAdd;
-  final VoidCallback onDelete; // Новый коллбэк для удаления товара
 
   const CartCard({
     Key? key,
@@ -21,7 +20,6 @@ class CartCard extends StatelessWidget {
     required this.quantity,
     required this.onRemove,
     required this.onAdd,
-    required this.onDelete, // Передаем коллбэк удаления
   }) : super(key: key);
 
 
@@ -70,36 +68,13 @@ class CartCard extends StatelessWidget {
             flex: 2,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Заголовок и иконка удаления
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     // Заголовок
-                    Expanded(
-                      child: Text(
+                Text(
                         title,
                         style: AppTextStyles.Title.copyWith(),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    // Иконка удаления (теперь вызывает `onDelete`)
-                    SizedBox(
-                      width: 25,
-                      height: 25,
-                      child: IconButton(
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        onPressed: onDelete, // Вызываем функцию удаления
-                        icon: const Icon(
-                          Icons.delete_outline_rounded,
-                          color: Color(0xFF555555),
-                          size: 25,
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
                 const SizedBox(height: 4),
                 Text(

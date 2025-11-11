@@ -45,6 +45,9 @@ class Product {
   final String description;
   final Category category;
   final List<Price> prices;
+  final bool liked;
+  final bool canSplit;
+  final bool disabled;
 
   Product({
     required this.id,
@@ -53,6 +56,9 @@ class Product {
     required this.description,
     required this.category,
     required this.prices,
+    this.liked = false,
+    this.canSplit = false,
+    this.disabled = false,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -63,6 +69,9 @@ class Product {
       description: json['description']?.toString() ?? '',
       category: Category.fromJson(json['category'] ?? {}),
       prices: (json['prices'] as List<dynamic>?)?.map((priceJson) => Price.fromJson(priceJson)).toList() ?? [],
+      liked: json['liked'] as bool? ?? false,
+      canSplit: json['can_split'] as bool? ?? false,
+      disabled: json['disabled'] as bool? ?? false,
     );
   }
 
@@ -73,6 +82,9 @@ class Product {
     'description': description,
     'category': category.toJson(),
     'prices': prices.map((p) => p.toJson()).toList(),
+    'liked': liked,
+    'can_split': canSplit,
+    'disabled': disabled,
   };
 }
 

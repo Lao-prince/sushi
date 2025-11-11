@@ -46,16 +46,16 @@ class CartItem {
 
   Map<String, dynamic> toJson() {
     return {
-      'productId': productId,
+    'productId': productId,
       'productSizeId': productSizeId,
-      'amount': amount,
-      'comment': comment,
-      'productName': productName,
-      'productImage': productImage,
-      'sizeName': sizeName,
+    'amount': amount,
+    'comment': comment,
+    'productName': productName,
+    'productImage': productImage,
+    'sizeName': sizeName,
       'price': price,
       'uuid': uuid,
-    };
+  };
   }
 }
 
@@ -88,8 +88,8 @@ class Cart {
 
   Map<String, dynamic> toJson() {
     return {
-      'Items': items.map((item) => item.toJson()).toList(),
+    'Items': items.map((item) => item.toJson()).toList(),
       'TotalPrice': totalPrice,
-    };
+  };
   }
 } 

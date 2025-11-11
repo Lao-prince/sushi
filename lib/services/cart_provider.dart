@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/cart_model.dart';
 import '../models/menu_model.dart';
+import '../config.dart';
 import 'package:flutter/foundation.dart';
 
 class CartProvider with ChangeNotifier {
@@ -16,6 +17,7 @@ class CartProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   List<CartItem> get items => _cart?.items ?? [];
   double get totalPrice => _cart?.totalPrice ?? 0;
+  String? get sessionCookie => _sessionCookie;
 
   // Получение корзины
   Future<void> fetchCart() async {
@@ -23,24 +25,34 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
 
     try {
+      print('[DEBUG] _fetchCart: Загружаем корзину с сервера...');
       final headers = {
         'Accept': 'application/json',
       };
       
       if (_sessionCookie != null) {
         headers['Cookie'] = _sessionCookie!;
+        final cookiePreview = _sessionCookie!.length > 50 ? '${_sessionCookie!.substring(0, 50)}...' : _sessionCookie!;
+        print('[DEBUG] _fetchCart: Используем cookie: $cookiePreview');
+      } else {
+        print('[DEBUG] _fetchCart: Cookie отсутствует');
       }
 
       final response = await http.get(
-        Uri.parse('http://89.223.122.180:10000/api/cart/get'),
+        Uri.parse('${AppConfig.baseUrl}/api/cart/get'),
         headers: headers,
       );
 
+      print('[DEBUG] _fetchCart: Ответ сервера: statusCode=${response.statusCode}');
+
       if (response.headers['set-cookie'] != null) {
         _sessionCookie = response.headers['set-cookie']!.split(';')[0];
+        print('[DEBUG] _fetchCart: Получен новый cookie');
       }
 
       if (response.statusCode == 200) {
+        final bodyPreview = response.body.length > 200 ? '${response.body.substring(0, 200)}...' : response.body;
+        print('[DEBUG] _fetchCart: Тело ответа: $bodyPreview');
         String? cartData = response.body.isNotEmpty ? response.body : null;
 
         if (cartData == null && _sessionCookie != null) {
@@ -53,7 +65,7 @@ class CartProvider with ChangeNotifier {
               cartData = sessionData['cart'];
             }
           } catch (e) {
-            print('Ошибка декодирования cookie: $e');
+            // Игнорируем ошибку
           }
         }
 
@@ -76,12 +88,14 @@ class CartProvider with ChangeNotifier {
             }
           }
           _cart = Cart.fromJson(data);
+          print('[DEBUG] _fetchCart: Загружена корзина: ${_cart?.items.length ?? 0} товаров, сумма: ${_cart?.totalPrice ?? 0}');
         } else {
           _cart = Cart(items: [], totalPrice: 0);
+          print('[DEBUG] _fetchCart: Корзина пуста (cartData == null)');
         }
       }
     } catch (e) {
-      print('Ошибка при загрузке корзины: $e');
+      print('[DEBUG] _fetchCart: Ошибка при загрузке корзины: $e');
       _cart = Cart(items: [], totalPrice: 0);
     }
 
@@ -127,22 +141,16 @@ class CartProvider with ChangeNotifier {
         'sizeName': sizeName,
       };
 
+      // Отправляем только те поля, которые ожидает API
       final Map<String, dynamic> requestBody = {
         'productId': product.id,
         'productSizeId': effectiveSizeId,
         'amount': amount,
-        'price': priceInfo.price,
         'comment': '',
-        'productName': product.name,
-        'productImage': product.imageLinks.isNotEmpty ? product.imageLinks.first : '',
-        'sizeName': sizeName,
       };
 
-      print('Отправляем запрос на добавление в корзину:');
-      print('requestBody: $requestBody');
-
       final response = await http.post(
-        Uri.parse('http://89.223.122.180:10000/api/cart/add'),
+        Uri.parse('${AppConfig.baseUrl}/api/cart/add'),
         headers: headers,
         body: json.encode(requestBody),
       );
@@ -151,12 +159,8 @@ class CartProvider with ChangeNotifier {
         _sessionCookie = response.headers['set-cookie']!.split(';')[0];
       }
 
-      print('Статус ответа: ${response.statusCode}');
-      print('Тело ответа: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('Получен ответ от сервера: $data');
         
         if (data['Items'] != null) {
           // Фильтруем товары с нулевым количеством
@@ -177,12 +181,9 @@ class CartProvider with ChangeNotifier {
           notifyListeners();
         }
       } else {
-        print('Ошибка при добавлении в корзину. Статус: ${response.statusCode}');
-        print('Тело ответа: ${response.body}');
         throw Exception('Ошибка при добавлении в корзину: ${response.body}');
       }
     } catch (e) {
-      print('Ошибка при добавлении в корзину: $e');
       rethrow;
     }
   }
@@ -196,7 +197,7 @@ class CartProvider with ChangeNotifier {
 
       if (_cart == null) {
         throw Exception('Корзина не инициализирована');
-      }
+  }
 
       // Для товаров без порций используем null как productSizeId
       final effectiveSizeId = sizeId?.isEmpty == true ? null : sizeId;
@@ -207,13 +208,6 @@ class CartProvider with ChangeNotifier {
                   ((effectiveSizeId == null && item.productSizeId == null) || 
                    (effectiveSizeId != null && item.productSizeId == effectiveSizeId)),
         orElse: () {
-          print('Товар не найден в корзине:');
-          print('productId: $productId');
-          print('sizeId: $effectiveSizeId');
-          print('Текущие товары в корзине:');
-          for (var item in _cart!.items) {
-            print('${item.productId} - ${item.productSizeId}');
-          }
           throw Exception('Товар не найден в корзине');
         },
       );
@@ -237,36 +231,41 @@ class CartProvider with ChangeNotifier {
         headers['Cookie'] = _sessionCookie!;
       }
 
+      // Если новое количество будет 0, удаляем товар полностью
+      if (quantity == 0) {
+        print('[DEBUG] updateQuantity: Количество стало 0, удаляем товар ${productId}');
+        await removeFromCart(productId, sizeId);
+        return;
+      }
+      
       // Определяем, увеличиваем или уменьшаем количество
       final isIncreasing = quantity > currentItem.amount;
       final amountChange = isIncreasing ? 1 : -1;
 
+      print('[DEBUG] updateQuantity: ${isIncreasing ? "Увеличиваем" : "Уменьшаем"} количество товара ${productId} на $amountChange (текущее: ${currentItem.amount}, новое: $quantity)');
+
+      // Отправляем только те поля, которые ожидает API
       final Map<String, dynamic> requestBody = {
         'productId': productId,
         'productSizeId': effectiveSizeId,
         'amount': amountChange,
         'comment': '',
-        'productName': currentItem.productName,
-        'productImage': currentItem.productImage,
-        'sizeName': currentItem.sizeName,
       };
 
       final response = await http.post(
-        Uri.parse('http://89.223.122.180:10000/api/cart/add'),
+        Uri.parse('${AppConfig.baseUrl}/api/cart/add'),
         headers: headers,
         body: json.encode(requestBody),
       );
+      
+      print('[DEBUG] updateQuantity: Ответ сервера: statusCode=${response.statusCode}');
 
       if (response.headers['set-cookie'] != null) {
         _sessionCookie = response.headers['set-cookie']!.split(';')[0];
       }
 
-      print('Статус ответа: ${response.statusCode}');
-      print('Тело ответа: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('Получен ответ от сервера: $data');
         
         if (data['Items'] != null) {
           // Фильтруем товары с нулевым количеством
@@ -288,15 +287,11 @@ class CartProvider with ChangeNotifier {
         }
       } else if (response.statusCode == 422) {
         final data = json.decode(response.body);
-        print('Ошибка валидации: $data');
         throw Exception('Ошибка валидации: ${data['message']}');
       } else {
-        print('Неизвестная ошибка. Статус: ${response.statusCode}');
-        print('Тело ответа: ${response.body}');
         throw Exception('Неизвестная ошибка: ${response.body}');
       }
     } catch (e) {
-      print('Ошибка при обновлении количества: $e');
       rethrow;
     }
   }
@@ -305,7 +300,6 @@ class CartProvider with ChangeNotifier {
   Future<void> removeFromCart(String productId, String? sizeId) async {
     try {
       if (_cart == null || _cart!.items.isEmpty) {
-        print('Корзина пуста');
         return;
       }
 
@@ -328,42 +322,33 @@ class CartProvider with ChangeNotifier {
         headers['Cookie'] = _sessionCookie!;
       }
 
-      // Отправляем запрос на удаление с отрицательным количеством
-      final Map<String, dynamic> requestBody = {
-        'productId': productId,
-        'productSizeId': effectiveSizeId,
-        'amount': -currentItem.amount, // Отрицательное количество для удаления
-        'comment': '',
-        'productName': currentItem.productName,
-        'productImage': currentItem.productImage,
-        'sizeName': currentItem.sizeName,
-      };
-
-      print('Отправляем запрос на удаление из корзины:');
-      print('requestBody: $requestBody');
-
-      final response = await http.post(
-        Uri.parse('http://89.223.122.180:10000/api/cart/add'),
+      // Используем DELETE /api/cart/{productId}/clear для полного удаления товара
+      print('[DEBUG] removeFromCart: Удаляем товар productId=${productId} через DELETE /api/cart/{id}/clear');
+      final response = await http.delete(
+        Uri.parse('${AppConfig.baseUrl}/api/cart/${productId}/clear'),
         headers: headers,
-        body: json.encode(requestBody),
       );
+
+      print('[DEBUG] removeFromCart: Ответ сервера: statusCode=${response.statusCode}');
+      print('[DEBUG] removeFromCart: Тело ответа: ${response.body}');
 
       if (response.headers['set-cookie'] != null) {
         _sessionCookie = response.headers['set-cookie']!.split(';')[0];
       }
 
-      print('Статус ответа: ${response.statusCode}');
-      print('Тело ответа: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('Получен ответ от сервера: $data');
+        print('[DEBUG] removeFromCart: Товары в корзине после удаления: ${data['Items']}');
         
         if (data['Items'] != null) {
+          final originalCount = (data['Items'] as List).length;
           // Фильтруем товары с нулевым количеством
           data['Items'] = (data['Items'] as List)
               .where((item) => (item['amount'] as num) > 0)
               .toList();
+          final filteredCount = (data['Items'] as List).length;
+          
+          print('[DEBUG] removeFromCart: Отфильтровано товаров: было $originalCount, осталось $filteredCount');
           
           // Восстанавливаем данные о товарах
           for (var item in data['Items']) {
@@ -379,15 +364,11 @@ class CartProvider with ChangeNotifier {
         }
       } else if (response.statusCode == 422) {
         final data = json.decode(response.body);
-        print('Ошибка валидации: $data');
         throw Exception('Ошибка валидации: ${data['message']}');
       } else {
-        print('Неизвестная ошибка. Статус: ${response.statusCode}');
-        print('Тело ответа: ${response.body}');
         throw Exception('Неизвестная ошибка: ${response.body}');
       }
     } catch (e) {
-      print('Ошибка при удалении из корзины: $e');
       rethrow;
     }
   }
@@ -404,25 +385,65 @@ class CartProvider with ChangeNotifier {
             (item.productSizeId == effectiveSizeId))
         .fold(0, (sum, item) => sum + item.amount);
     
-    print('Найдено количество: $count');
     return count;
   }
 
   // Очистка корзины
   Future<void> clearCart() async {
     try {
+      final headers = <String, String>{
+        'Accept': 'application/json',
+      };
+      
+      if (_sessionCookie != null) {
+        headers['Cookie'] = _sessionCookie!;
+      }
+      
+      // Сначала пробуем стандартный эндпоинт
       final response = await http.delete(
-        Uri.parse('http://89.223.122.180:10000/api/cart/clear'),
+        Uri.parse('${AppConfig.baseUrl}/api/cart/clear'),
+        headers: headers,
       );
 
-      if (response.statusCode == 200) {
-        _cart = Cart(items: [], totalPrice: 0);
-        notifyListeners();
-      } else {
-        print('Ошибка очистки корзины: ${response.statusCode}');
+      print('[DEBUG] clearCart: DELETE /api/cart/clear statusCode=${response.statusCode}, body=${response.body}');
+
+      // Альтернативный подход: если корзина не пуста, удаляем товары через DELETE /api/cart/{id}/clear
+      if (_cart != null && _cart!.items.isNotEmpty) {
+        print('[DEBUG] clearCart: Удаляем ${_cart!.items.length} товаров через DELETE /api/cart/{id}/clear...');
+        final itemsToRemove = List.from(_cart!.items); // Создаем копию списка
+        
+        for (var item in itemsToRemove) {
+          try {
+            print('[DEBUG] clearCart: Удаляем товар с productId=${item.productId}');
+            
+            final deleteResponse = await http.delete(
+              Uri.parse('${AppConfig.baseUrl}/api/cart/${item.productId}/clear'),
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                if (_sessionCookie != null) 'Cookie': _sessionCookie!,
+              },
+            );
+            print('[DEBUG] clearCart: Товар ${item.productId} удален через /clear, statusCode=${deleteResponse.statusCode}, body=${deleteResponse.body}');
+          } catch (e) {
+            print('[DEBUG] clearCart: Ошибка при удалении товара ${item.productId}: $e');
+          }
+        }
       }
+
+      // Сбрасываем сессию (cookie), чтобы создать новую чистую корзину
+      print('[DEBUG] clearCart: Сбрасываем cookie для создания новой сессии');
+      _sessionCookie = null;
+      
+      // Очищаем локальную корзину
+      _cart = Cart(items: [], totalPrice: 0);
+      notifyListeners();
+      print('[DEBUG] clearCart: Локальная корзина очищена, сессия сброшена');
     } catch (e) {
-      print('Ошибка при очистке корзины: $e');
+      print('[DEBUG] clearCart: Ошибка: $e');
+      // При ошибке сети всё равно очищаем локальную корзину
+      _cart = Cart(items: [], totalPrice: 0);
+      notifyListeners();
     }
   }
 }

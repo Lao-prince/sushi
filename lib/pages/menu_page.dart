@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import '../services/menu_provider.dart';
 import '../widgets/product_card.dart';
@@ -41,11 +40,7 @@ class _MenuPageState extends State<MenuPage> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      final menuProvider = Provider.of<MenuProvider>(context, listen: false);
-      menuProvider.loadMoreProducts();
-    }
+    // Логика пагинации больше не нужна - все товары загружаются сразу
   }
 
   void _scrollToCategory(String categoryId) {
@@ -94,6 +89,51 @@ class _MenuPageState extends State<MenuPage> {
       scrollOffset,
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
+    );
+  }
+
+  Widget _buildErrorWidget(MenuProvider menuProvider) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Color(0xFFD1930D),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Ошибка загрузки',
+              style: AppTextStyles.H2.copyWith(color: Colors.white),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              menuProvider.errorMessage!,
+              style: AppTextStyles.Body.copyWith(color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () => menuProvider.retry(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFD1930D),
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                'Повторить',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -146,9 +186,12 @@ class _MenuPageState extends State<MenuPage> {
                       children: [
                         const SizedBox(height: 20),
                         Center(
-                          child: Text(
-                            'Меню',
-                            style: AppTextStyles.H1.copyWith(),
+                          child: SizedBox(
+                            height: 60,
+                            child: Image.asset(
+                              'assets/images/logo.png',
+                              fit: BoxFit.contain,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 25),
@@ -162,14 +205,6 @@ class _MenuPageState extends State<MenuPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: menuProvider.categories.map((category) {
                                 _topCategoryKeys.putIfAbsent(category.id, () => GlobalKey());
-                                final products = menuProvider.categorizedProducts[category.id] ?? [];
-                                String? firstImageUrl = products.isNotEmpty && products.first.imageLinks.isNotEmpty
-                                    ? products.first.imageLinks.first
-                                    : null;
-
-                                List<String> words = category.name.split(' ');
-                                String longestWord = words.reduce((a, b) => a.length > b.length ? a : b);
-                                double textWidth = longestWord.length * 10.0;
 
                                 return GestureDetector(
                                   onTap: () {
@@ -180,69 +215,21 @@ class _MenuPageState extends State<MenuPage> {
                                     padding: const EdgeInsets.only(right: 12),
                                     child: Container(
                                       key: _topCategoryKeys[category.id],
-                                      padding: const EdgeInsets.all(4),
+                                      padding: const EdgeInsets.all(8),
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(8),
                                         color: _visibleCategoryId == category.id
-                                            ? const Color(0xFFD1930D)
+                                          ? const Color(0xFFD1930D)
                                             : const Color.fromARGB(0, 255, 255, 255),
                                       ),
-                                      child: Column(
-                                        children: [
-                                          Container(
-                                            width: 52,
-                                            height: 52,
-                                            decoration: BoxDecoration(
-                                              borderRadius: BorderRadius.circular(8),
-                                              color: const Color(0xFF3A435B),
-                                            ),
-                                            child: firstImageUrl != null
-                                                ? ClipRRect(
-                                                    borderRadius: BorderRadius.circular(8),
-                                                    child: CachedNetworkImage(
-                                                      imageUrl: firstImageUrl,
-                                                      fit: BoxFit.cover,
-                                                      width: 52,
-                                                      height: 52,
-                                                      placeholder: (context, url) => Container(
-                                                        color: const Color(0xFF3A435B),
-                                                        child: const Center(
-                                                          child: SizedBox(
-                                                            width: 24,
-                                                            height: 24,
-                                                            child: CircularProgressIndicator(
-                                                              strokeWidth: 2,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                      errorWidget: (context, url, error) => Container(
-                                                        color: const Color(0xFF3A435B),
-                                                        child: const Icon(Icons.error),
-                                                      ),
-                                                    ),
-                                                  )
-                                                : Center(
                                                     child: Text(
-                                                      category.name[0],
-                                                      style: const TextStyle(color: Colors.white),
-                                                    ),
-                                                  ),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          SizedBox(
-                                            width: textWidth > 52 ? textWidth : 52,
-                                            child: Text(
-                                              words.join('\n'),
+                                        category.name,
                                               textAlign: TextAlign.center,
-                                              style: AppTextStyles.Body.copyWith(
+                                        style: AppTextStyles.H3.copyWith(
                                                 color: _visibleCategoryId == category.id
                                                     ? const Color.fromARGB(255, 255, 255, 255)
-                                                    : Colors.white,
+                                                  : Colors.white,
                                               ),
-                                            ),
-                                          ),
-                                        ],
                                       ),
                                     ),
                                   ),
@@ -265,6 +252,8 @@ class _MenuPageState extends State<MenuPage> {
                           children: [
                             if (menuProvider.isLoading)
                               const Center(child: CircularProgressIndicator())
+                            else if (menuProvider.errorMessage != null)
+                              _buildErrorWidget(menuProvider)
                             else
                               ...menuProvider.categories.map((category) {
                                 _categoryKeys.putIfAbsent(
@@ -272,50 +261,44 @@ class _MenuPageState extends State<MenuPage> {
                                 final products = menuProvider
                                         .categorizedProducts[category.id] ??
                                     [];
-
+                                
                                 return VisibilityDetector(
                                   key: Key(category.id),
                                   onVisibilityChanged: (visibilityInfo) {
                                     _onVisibilityChange(category.id, visibilityInfo.visibleFraction);
                                   },
                                   child: Column(
-                                    key: _categoryKeys[category.id],
+                                  key: _categoryKeys[category.id],
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
-                                    children: [
-                                      const SizedBox(height: 25),
-                                      Text(
-                                        category.name,
+                                  children: [
+                                    const SizedBox(height: 25),
+                                    Text(
+                                      category.name,
                                         style: AppTextStyles.H2
                                             .copyWith(color: Colors.white),
-                                      ),
-                                      const SizedBox(height: 10),
-                                      LayoutBuilder(
-                                        builder: (context, constraints) {
+                                    ),
+                                    const SizedBox(height: 10),
+                                    LayoutBuilder(
+                                      builder: (context, constraints) {
                                           double cardWidth =
                                               (constraints.maxWidth - 10) / 2;
-                                          return Wrap(
-                                            spacing: 10,
-                                            runSpacing: 10,
-                                            children: products.map((product) {
-                                              return SizedBox(
-                                                width: cardWidth,
+                                        return Wrap(
+                                          spacing: 10,
+                                          runSpacing: 10,
+                                          children: products.map((product) {
+                                            return SizedBox(
+                                              width: cardWidth,
                                                 child: ProductCard(product: product),
-                                              );
-                                            }).toList(),
-                                          );
-                                        },
-                                      ),
-                                    ],
+                                            );
+                                          }).toList(),
+                                        );
+                                      },
+                                    ),
+                                  ],
                                   ),
                                 );
                               }).toList(),
-                            if (menuProvider.isLoadingMore)
-                              const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 20),
-                                child: Center(
-                                    child: CircularProgressIndicator()),
-                              ),
                           ],
                         ),
                       ),

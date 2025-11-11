@@ -2,7 +2,24 @@ import 'package:flutter/material.dart';
 import '../style/styles.dart';
 
 class CartConfirmPage extends StatelessWidget {
-  const CartConfirmPage({Key? key}) : super(key: key);
+  final String orderId;
+  final String customerName;
+  final String customerPhone;
+  final String customerEmail;
+  final String address;
+  final double totalPrice;
+  final String deliveryTime;
+  
+  const CartConfirmPage({
+    Key? key,
+    required this.orderId,
+    required this.customerName,
+    required this.customerPhone,
+    required this.customerEmail,
+    required this.address,
+    required this.totalPrice,
+    required this.deliveryTime,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -14,14 +31,6 @@ class CartConfirmPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(height: 20),
-              // Заголовок "Корзина"
-              Center(
-                child: Text(
-                  'Корзина',
-                  style: AppTextStyles.H1.copyWith(color: Colors.white),
-                ),
-              ),
               const SizedBox(height: 20),
 
               // Блок с шагами
@@ -58,19 +67,26 @@ class CartConfirmPage extends StatelessWidget {
                         children: [
                           const Icon(Icons.check_circle, color: Color(0xFFD1930D), size: 50),
                           const SizedBox(width: 16),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Заказ #639',
-                                style: AppTextStyles.Subtitle.copyWith(color: const Color(0xFF4D4D4D)),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Спасибо большое за заказ!',
-                                style: AppTextStyles.Title.copyWith(color: const Color(0xFFFDFDFD)),
-                              ),
-                            ],
+                          Flexible(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    'Заказ #$orderId',
+                                    style: AppTextStyles.Subtitle.copyWith(color: const Color(0xFF4D4D4D)),
+                                    maxLines: 1,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Спасибо большое за заказ!',
+                                  style: AppTextStyles.Title.copyWith(color: const Color(0xFFFDFDFD)),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -139,7 +155,7 @@ class CartConfirmPage extends StatelessWidget {
                                     mainAxisAlignment: MainAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Прохоров Алексей',
+                                        customerName,
                                         style: AppTextStyles.Title.copyWith(color: const Color(0xFF848484)),
                                       ),
                                     ],
@@ -165,7 +181,7 @@ class CartConfirmPage extends StatelessWidget {
                                     mainAxisAlignment: MainAxisAlignment.start,
                                     children: [
                                       Text(
-                                        '+7 (999) 123-45-67',
+                                        customerPhone,
                                         style: AppTextStyles.Title.copyWith(color: const Color(0xFF848484)),
                                       ),
                                     ],
@@ -190,9 +206,69 @@ class CartConfirmPage extends StatelessWidget {
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.start,
                                     children: [
+                                      Flexible(
+                                        child: Text(
+                                          address,
+                                          style: AppTextStyles.Title.copyWith(color: const Color(0xFF848484)),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                // Новый блок "Время доставки"
+                                Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    children: [
                                       Text(
-                                        'Москва, ул. Пушкина, д. 10',
-                                        style: AppTextStyles.Title.copyWith(color: const Color(0xFF848484)),
+                                        'Время доставки',
+                                        style: AppTextStyles.Title.copyWith(color: const Color(0xFFFDFDFD)),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          deliveryTime,
+                                          style: AppTextStyles.Title.copyWith(color: const Color(0xFF848484)),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                // Новый блок "Итоговая стоимость"
+                                Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Итоговая стоимость',
+                                        style: AppTextStyles.Title.copyWith(color: const Color(0xFFFDFDFD)),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '${totalPrice.toInt()} ₽',
+                                        style: AppTextStyles.Title.copyWith(
+                                          color: const Color(0xFFD1930D),
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 20,
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -209,10 +285,11 @@ class CartConfirmPage extends StatelessWidget {
 
               const SizedBox(height: 20),
 
-              // Кнопка "Вернуться к оформлению"
+              // Кнопка "Вернуться в меню"
               ElevatedButton(
                 onPressed: () {
-                  Navigator.pop(context); // Вернуться к оформлению
+                  // Возвращаемся на главную страницу (меню)
+                  Navigator.of(context).popUntil((route) => route.isFirst);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFD1930D),
@@ -226,12 +303,12 @@ class CartConfirmPage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     const Icon(
-                      Icons.arrow_back_ios_new,
+                      Icons.restaurant_menu,
                       color: Colors.white,
                       size: 18,
                     ),
                     const SizedBox(width: 8),
-                    Text('Вернуться к оформлению', style: AppTextStyles.Subtitle.copyWith(color: Colors.white)),
+                    Text('Вернуться в меню', style: AppTextStyles.Subtitle.copyWith(color: Colors.white)),
                   ],
                 ),
               ),
@@ -316,3 +393,4 @@ class DottedLinePainter extends CustomPainter {
     return false;
   }
 }
+

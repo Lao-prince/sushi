@@ -141,10 +141,6 @@ class CartPage extends StatelessWidget {
                     item.productSizeId,
                     item.amount + 1,
                   ),
-                  onDelete: () => cartProvider.removeFromCart(
-                    item.productId,
-                    item.productSizeId,
-                  ),
                 );
               },
             ),
@@ -253,12 +249,6 @@ class CartPage extends StatelessWidget {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              const SizedBox(height: 20),
-              // Page title
-              Text(
-                'Корзина',
-                style: AppTextStyles.H1.copyWith(color: Colors.white),
-              ),
               const SizedBox(height: 20),
               // Steps alignment
               Center(

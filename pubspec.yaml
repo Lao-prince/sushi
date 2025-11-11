@@ -1,4 +1,4 @@
-name: sushi
+name: Sushi_ot_Sashi
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -39,11 +39,14 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   http_interceptor: ^2.0.0-beta.7
+  connectivity_plus: ^5.0.2
+  url_launcher: ^6.3.1
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   visibility_detector: ^0.4.0+2
+  flutter_launcher_icons: ^0.14.4
 
 dev_dependencies:
   flutter_test:
@@ -99,3 +102,11 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/logoicon.png"
+  adaptive_icon_background: "#0C1F36"
+  adaptive_icon_foreground: "assets/images/logoicon.png"
+  remove_alpha_ios: true

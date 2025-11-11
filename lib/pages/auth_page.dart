@@ -14,7 +14,7 @@ class AuthPage extends StatefulWidget {
 }
 
 class _AuthPageState extends State<AuthPage> {
-  final _phoneController = TextEditingController();
+  final _phoneController = TextEditingController(text: '+7 (9');
   final _passwordController = TextEditingController();
   final _codeController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
@@ -22,6 +22,15 @@ class _AuthPageState extends State<AuthPage> {
   bool _isRegistration = false;
   String? _userId;
   bool _isWaitingForCode = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Устанавливаем курсор в конец
+    _phoneController.selection = TextSelection.fromPosition(
+      TextPosition(offset: _phoneController.text.length),
+    );
+  }
 
   @override
   void dispose() {
@@ -57,8 +66,9 @@ class _AuthPageState extends State<AuthPage> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Код подтверждения отправлен в WhatsApp'),
+              content: Text('Код подтверждения отправлен по SMS. Проверьте сообщения.'),
               backgroundColor: Colors.green,
+              duration: Duration(seconds: 5),
             ),
           );
         }
@@ -66,8 +76,9 @@ class _AuthPageState extends State<AuthPage> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Ошибка регистрации. Возможно, этот номер уже зарегистрирован'),
+              content: Text('Ошибка регистрации. Попробуйте войти, если уже зарегистрированы.'),
               backgroundColor: Colors.red,
+              duration: Duration(seconds: 5),
             ),
           );
         }
@@ -210,7 +221,7 @@ class _AuthPageState extends State<AuthPage> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    hintText: '+7 (___) ___-__-__',
+                    hintText: '+7 (9XX) XXX-XX-XX',
                   ),
                   style: AppTextStyles.Body,
                   keyboardType: TextInputType.phone,

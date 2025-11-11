@@ -20,12 +20,12 @@ class MenuBar extends StatelessWidget {
         ) ??
         0;
 
-    // Список элементов с путями к SVG-иконкам и названиями
+    // Список элементов с путями к иконкам и названиями
     final items = [
-      {'icon': 'assets/images/menu.svg', 'label': 'Меню'},
-      {'icon': 'assets/images/search.svg', 'label': 'Поиск'},
-      {'icon': 'assets/images/basket.svg', 'label': 'Корзина'},
-      {'icon': 'assets/images/profile.svg', 'label': 'Профиль'},
+      {'icon': 'assets/images/menu.svg', 'label': 'Меню', 'type': 'svg'},
+      {'icon': 'assets/images/search.svg', 'label': 'Поиск', 'type': 'svg'},
+      {'icon': 'assets/images/basket.svg', 'label': 'Корзина', 'type': 'svg'},
+      {'icon': 'assets/images/profile.svg', 'label': 'Профиль', 'type': 'svg'},
     ];
 
     return Container(
@@ -48,7 +48,22 @@ class MenuBar extends StatelessWidget {
               children: [
                 Stack(
                   children: [
-                    SvgPicture.asset(
+                    // Проверяем тип файла и используем соответствующий виджет
+                    item['type'] == 'png'
+                        ? ColorFiltered(
+                            colorFilter: ColorFilter.mode(
+                              isSelected
+                                  ? const Color(0xFFD1930D)
+                                  : const Color(0xFFFDFDFD),
+                              BlendMode.srcIn,
+                            ),
+                            child: Image.asset(
+                              item['icon'] as String,
+                              width: 30,
+                              height: 30,
+                            ),
+                          )
+                        : SvgPicture.asset(
                       item['icon'] as String, // Путь к SVG-иконке
                       width: 30,
                       height: 30,

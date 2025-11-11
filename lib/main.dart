@@ -4,12 +4,16 @@ import 'pages/menu_page.dart'; // Убедитесь, что путь к фай�
 import 'pages/search_page.dart'; // Убедитесь, что путь к файлу правильный
 import 'pages/cart_page.dart'; // Убедитесь, что путь к файлу правильный
 import 'pages/profile_page.dart'; // Убедитесь, что путь к файлу правильный
+import 'pages/splash_page.dart'; // Экран загрузки
 import 'widgets/menu_bar.dart' as custom; // Используем псевдоним
 import 'style/styles.dart'; // Файл со стилями текста
 import 'package:provider/provider.dart';
 import 'services/menu_provider.dart';
 import 'services/cart_provider.dart';
 import 'services/auth_provider.dart';
+import 'services/delivery_type_provider.dart';
+import 'services/payment_type_provider.dart';
+import 'services/delivery_cost_provider.dart';
 import 'services/http_client.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -33,6 +37,9 @@ void main() {
         ChangeNotifierProvider.value(value: authProvider),
         ChangeNotifierProvider(create: (_) => CartProvider()),
         ChangeNotifierProvider(create: (_) => MenuProvider()),
+        ChangeNotifierProvider(create: (_) => DeliveryTypeProvider()),
+        ChangeNotifierProvider(create: (_) => PaymentTypeProvider()),
+        ChangeNotifierProvider(create: (_) => DeliveryCostProvider()),
       ],
       child: const MyApp(),
     ),
@@ -46,7 +53,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: navigatorKey,
-      title: 'Sushi Menu',
+      title: 'Суши от Саши',
       theme: ThemeData(
         fontFamily: 'HattoriHanzo', // Основной шрифт
         textTheme: ThemeData.light().textTheme.copyWith(
@@ -70,8 +77,45 @@ class MyApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       locale: const Locale('ru', 'RU'),
-      home: const MainPage(),
+      home: const AppInitializer(),
     );
+  }
+}
+
+class AppInitializer extends StatefulWidget {
+  const AppInitializer({Key? key}) : super(key: key);
+
+  @override
+  _AppInitializerState createState() => _AppInitializerState();
+}
+
+class _AppInitializerState extends State<AppInitializer> {
+  bool _isInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initialize();
+  }
+
+  Future<void> _initialize() async {
+    // Провайдеры загружают данные автоматически в конструкторах
+    // Ждем минимальное время для показа логотипа
+    await Future.delayed(const Duration(seconds: 2));
+    
+    if (mounted) {
+      setState(() {
+        _isInitialized = true;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_isInitialized) {
+      return const SplashPage();
+    }
+    return const MainPage();
   }
 }
 
