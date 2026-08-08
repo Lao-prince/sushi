@@ -12,6 +12,8 @@ import '../config.dart';
 import 'dart:convert';
 import 'cart_confirm_page.dart';
 import '../utils/phone_input_formatter.dart';
+import '../utils/async_state.dart';
+import '../features/address/use_get_cost/index.dart';
 
 class CartCheckoutPage extends StatefulWidget {
   const CartCheckoutPage({Key? key}) : super(key: key);
@@ -24,8 +26,27 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
   bool isDeliverySelected = true;
   String _selectedPaymentMethod = 'Не выбрано';
   String? _selectedCity;
-  double _deliveryCost = 0.0;
-  
+
+  /// Проверка адреса на попадание в зону доставки. Единственный источник
+  /// стоимости доставки — плоский тариф по городу из DeliveryCostProvider
+  /// для расчёта больше не используется (тот остался только ради списка
+  /// городов в выпадающем списке).
+  final _costModel = GetCostModel();
+
+  /// Цена из зоны, либо `null`, если её не удалось определить: адрес неполный,
+  /// запрос ещё идёт, адрес вне зоны или запрос упал.
+  double? get _zonePrice {
+    final state = _costModel.state;
+
+    return state is AsyncData<CostCheck> && state.value.inZone
+        ? state.value.price
+        : null;
+  }
+
+  /// Стоимость доставки. Вычисляется, а не хранится в поле: рассинхрон с
+  /// адресом теперь невозможен в принципе.
+  double get _deliveryCost => isDeliverySelected ? (_zonePrice ?? 0) : 0;
+
   // Время доставки/самовывоза
   bool _asSoonAsPossible = false;
   bool _tomorrow = false;
@@ -84,14 +105,10 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
               _entranceController.text = firstAddress['entrance'] ?? '';
               _floorController.text = firstAddress['floor'] ?? '';
               _apartmentController.text = firstAddress['doorphone'] ?? '';
-              
-              // Обновляем стоимость доставки для автоматически заполненного города
-              if (city != null && isDeliverySelected) {
-                final deliveryCostProvider = Provider.of<DeliveryCostProvider>(context, listen: false);
-                _deliveryCost = deliveryCostProvider.getDeliveryCost(city);
-                print('[DEBUG] Автозаполнение: город=$city, стоимость доставки=$_deliveryCost');
-              }
             });
+
+            // Адрес подставился целиком — считаем стоимость по зоне.
+            _syncCostQuery();
           }
         });
       }
@@ -467,19 +484,28 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
   @override
   void initState() {
     super.initState();
+
+    // Модель сама себя не перерисовывает — подписываемся, чтобы состояние
+    // запроса доехало до build().
+    _costModel.addListener(_onCostChanged);
+
+    // Адрес складывается из города, улицы и дома: слушаем два поля,
+    // город приходит из выпадающего списка отдельным вызовом.
+    _streetController.addListener(_syncCostQuery);
+    _houseController.addListener(_syncCostQuery);
+
     // Устанавливаем значения по умолчанию после загрузки данных
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final deliveryCostProvider = Provider.of<DeliveryCostProvider>(context, listen: false);
-      
+
       // Устанавливаем Ступино по умолчанию после загрузки городов
       if (deliveryCostProvider.deliveryCosts.isNotEmpty) {
         deliveryCostProvider.setDefaultCity();
         setState(() {
           _selectedCity = 'Ступино';
-          _deliveryCost = deliveryCostProvider.getDeliveryCost('Ступино');
         });
       }
-      
+
       // Загружаем данные времени
       _loadOrderTiming();
       
@@ -488,8 +514,39 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
     });
   }
 
+  /// Отдаёт модели текущий адрес. Пустая строка сбрасывает её в исходное
+  /// состояние — при самовывозе и пока адрес неполный запрос не уходит.
+  ///
+  /// Вызывается на каждое изменение полей улицы и дома, в том числе при
+  /// перемещении каретки: `TextEditingController` уведомляет и об этом.
+  /// Отсекает такие пустые вызовы сама модель — она сравнивает адрес
+  /// с предыдущим.
+  void _syncCostQuery() {
+    if (!isDeliverySelected) {
+      _costModel.setQuery('');
+      return;
+    }
+
+    final city = _selectedCity?.trim() ?? '';
+    final street = _streetController.text.trim();
+    final house = _houseController.text.trim();
+
+    if (city.isEmpty || street.isEmpty || house.isEmpty) {
+      _costModel.setQuery('');
+      return;
+    }
+
+    _costModel.setQuery('$city, $street, $house');
+  }
+
+  void _onCostChanged() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
+    _costModel.removeListener(_onCostChanged);
+    _costModel.dispose();
     _nameController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
@@ -813,7 +870,12 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
                     _buildLabeledInputField('Подъезд', 'Введите номер подъезда', controller: _entranceController, inputFormatters: [FilteringTextInputFormatter.digitsOnly], keyboardType: TextInputType.number),
                     _buildLabeledInputField('Этаж', 'Введите этаж', controller: _floorController, inputFormatters: [FilteringTextInputFormatter.digitsOnly], keyboardType: TextInputType.number),
                     _buildLabeledInputField('Квартира', 'Введите номер квартиры', controller: _apartmentController, inputFormatters: [FilteringTextInputFormatter.digitsOnly], keyboardType: TextInputType.number),
+
                     const SizedBox(height: 16),
+
+                    // Стоимость доставки по зоне: спиннер, цена или телефон
+                    // оператора — зависит от состояния запроса.
+                    DeliveryCostView(state: _costModel.state),
 
                     // Свитчи "Как можно раньше" и "На завтра" и поле для времени доставки
                     _buildDeliveryTimeSwitches(),
@@ -1060,11 +1122,9 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
                         if (newValue != null && newValue.isNotEmpty) {
                           setState(() {
                             _selectedCity = newValue;
-                            // Обновляем стоимость доставки только если выбран тип доставки
-                            if (isDeliverySelected) {
-                              _deliveryCost = deliveryCostProvider.getDeliveryCost(newValue);
-                            }
                           });
+                          // Город — часть адреса, пересчитываем зону.
+                          _syncCostQuery();
                         }
                       },
                       dropdownColor: const Color(0xFF1C2D45),
@@ -1072,17 +1132,6 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
                         padding: EdgeInsets.only(right: 12),
                         child: Icon(Icons.arrow_drop_down, color: Color(0xFFD1930D)),
                       ),
-                    ),
-                  ),
-                ),
-              if (_selectedCity != null && _deliveryCost > 0)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                    'Стоимость доставки: ${_deliveryCost.toInt()} ₽',
-                    style: AppTextStyles.Body.copyWith(
-                      color: const Color(0xFFD1930D),
-                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
@@ -1413,15 +1462,9 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
         onTap: () {
           setState(() {
             isDeliverySelected = isDelivery;
-            // Обнуляем стоимость доставки при переключении на самовывоз
-            if (!isDelivery) {
-              _deliveryCost = 0.0;
-            } else if (_selectedCity != null) {
-              // Восстанавливаем стоимость доставки при переключении на доставку
-              final deliveryCostProvider = Provider.of<DeliveryCostProvider>(context, listen: false);
-              _deliveryCost = deliveryCostProvider.getDeliveryCost(_selectedCity!);
-            }
           });
+          // При самовывозе запрос сбрасывается, при доставке — уходит заново.
+          _syncCostQuery();
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
